@@ -193,24 +193,35 @@ impl Game {
             if !self.drawer.add_text_command(&caps[1]) {
                 return Ok(());
             }
-            let rgba = self.drawer.get_image()?;
-            let (width, height) = self.drawer.get_canvas_size();
+            if line.contains("line") {
+                return Ok(());
+            }
+            let w = self.drawer.get_canvas_size().0;
+            let mut scale = 1;
+            while (w * scale) < 60 * self.cell_w as u32 {
+                scale += 1;
+            }
+
+            let rgba = self.drawer.get_scaled_image_fir(scale)?;
+            let width = rgba.width;
+            let height = rgba.height;
             let image = Image {
                 num_or_id: NumberOrId::Number(NonZeroU32::MIN),
                 format: PixelFormat::Rgba32(ImageDimensions { width, height }, None),
                 medium: Medium::Direct {
                     chunk_size: None,
-                    data: Cow::Borrowed(&rgba),
+                    data: Cow::Borrowed(&rgba.rgba),
                 },
             };
-            let columns = (width * 3 / self.cell_w as u32) as u16;
-            let rows = (height * 3 / self.cell_h as u32) as u16;
+            let columns = (width / self.cell_w as u32) as u16;
+            let rows = (height / self.cell_h as u32) as u16;
             let action = KittyAction::TransmitAndDisplay {
                 image,
                 config: DisplayConfig {
                     location: DisplayLocation {
                         columns,
                         rows,
+                        horizontal_offset: 100,
                         ..Default::default()
                     },
                     cursor_movement: CursorMovementPolicy::DontMove,
@@ -219,6 +230,11 @@ impl Game {
                 placement_id: None,
             };
             let mut out = stdout();
+
+            for _ in 0..rows {
+                out.write_all(b"\r\n")?;
+            }
+            out.queue(cursor::MoveUp(rows))?;
             action.write_transmit_to(&mut out, Verbosity::Silent)?;
             out.flush()?;
             if rows > self.skip_lines {

@@ -19,3 +19,4 @@ regex = "1"
 png = "0.17"
 kittage = "0.4.0"
 rustix = { version = "1.1.4", features = ["termios"] }
+fast_image_resize = "5"

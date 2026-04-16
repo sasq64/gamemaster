@@ -4,6 +4,8 @@ use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+use fast_image_resize::images::Image as FirImage;
+use fast_image_resize::{PixelType, ResizeAlg, ResizeOptions, Resizer};
 
 use crate::draw::PixelCanvas;
 
@@ -26,6 +28,12 @@ impl Default for ImageDrawer {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub struct ImgRgba {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
 }
 
 impl ImageDrawer {
@@ -174,7 +182,7 @@ impl ImageDrawer {
         (self.pcanvas.width, self.pcanvas.height)
     }
 
-    pub fn get_image(&self) -> Result<Vec<u8>> {
+    pub fn get_image(&self) -> Result<ImgRgba> {
         let w = self.pcanvas.width;
         let h = self.pcanvas.height;
         let mut rgba = Vec::with_capacity((w as usize) * (h as usize) * 4);
@@ -185,7 +193,67 @@ impl ImageDrawer {
             rgba.push(((p >> 8) & 0xFF) as u8);
             rgba.push((p & 0xFF) as u8);
         }
-        Ok(rgba)
+        Ok(ImgRgba {
+            width: w,
+            height: h,
+            rgba,
+        })
+    }
+
+    pub fn get_scaled_image(&self, scale: u32) -> Result<ImgRgba> {
+        let w = self.pcanvas.width;
+        let h = self.pcanvas.height;
+        let sw = (w * scale) as usize;
+        let sh = (h * scale) as usize;
+        let scale = scale as usize;
+        let mut rgba = vec![0u8; sw * sh * 4];
+        for y in 0..h as usize {
+            for x in 0..w as usize {
+                let idx = self.pcanvas.array[y * w as usize + x];
+                let p = self.palette.get(idx as usize).copied().unwrap_or(0);
+                let r = ((p >> 24) & 0xFF) as u8;
+                let g = ((p >> 16) & 0xFF) as u8;
+                let b = ((p >> 8) & 0xFF) as u8;
+                let a = (p & 0xFF) as u8;
+                for dy in 0..scale {
+                    let row = (y * scale + dy) * sw;
+                    for dx in 0..scale {
+                        let off = (row + x * scale + dx) * 4;
+                        rgba[off] = r;
+                        rgba[off + 1] = g;
+                        rgba[off + 2] = b;
+                        rgba[off + 3] = a;
+                    }
+                }
+            }
+        }
+        Ok(ImgRgba {
+            width: sw as u32,
+            height: sh as u32,
+            rgba,
+        })
+    }
+
+    pub fn get_scaled_image_fir(&self, scale: u32) -> Result<ImgRgba> {
+        let src = self.get_image()?;
+        let sw = src.width * scale;
+        let sh = src.height * scale;
+
+        let src_img = FirImage::from_vec_u8(src.width, src.height, src.rgba, PixelType::U8x4)
+            .context("fir source image")?;
+        let mut dst_img = FirImage::new(sw, sh, PixelType::U8x4);
+
+        let mut resizer = Resizer::new();
+        let opts = ResizeOptions::new().resize_alg(ResizeAlg::Nearest);
+        resizer
+            .resize(&src_img, &mut dst_img, &opts)
+            .context("fir resize")?;
+
+        Ok(ImgRgba {
+            width: sw,
+            height: sh,
+            rgba: dst_img.into_vec(),
+        })
     }
 
     /// Write `game.png` in the current working directory and return its path.
