@@ -156,28 +156,6 @@ impl ImageDrawer {
         }
     }
 
-    /// Encode current canvas to a PNG at `path` (RGBA8).
-    pub fn write_png(&self, path: &Path) -> Result<()> {
-        let w = self.pcanvas.width;
-        let h = self.pcanvas.height;
-        let mut rgba = Vec::with_capacity((w as usize) * (h as usize) * 4);
-        for &idx in &self.pcanvas.array {
-            let p = self.palette.get(idx as usize).copied().unwrap_or(0);
-            rgba.push(((p >> 24) & 0xFF) as u8);
-            rgba.push(((p >> 16) & 0xFF) as u8);
-            rgba.push(((p >> 8) & 0xFF) as u8);
-            rgba.push((p & 0xFF) as u8);
-        }
-
-        let file = File::create(path).with_context(|| format!("create {}", path.display()))?;
-        let mut encoder = png::Encoder::new(BufWriter::new(file), w, h);
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().context("png header")?;
-        writer.write_image_data(&rgba).context("png data")?;
-        Ok(())
-    }
-
     pub fn get_canvas_size(&self) -> (u32, u32) {
         (self.pcanvas.width, self.pcanvas.height)
     }
@@ -198,6 +176,18 @@ impl ImageDrawer {
             height: h,
             rgba,
         })
+    }
+
+    /// Encode current canvas to a PNG at `path` (RGBA8).
+    pub fn write_png(&self, path: &Path) -> Result<()> {
+        let rgba = self.get_image()?;
+        let file = File::create(path).with_context(|| format!("create {}", path.display()))?;
+        let mut encoder = png::Encoder::new(BufWriter::new(file), rgba.width, rgba.height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().context("png header")?;
+        writer.write_image_data(&rgba.rgba).context("png data")?;
+        Ok(())
     }
 
     pub fn get_scaled_image(&self, scale: u32) -> Result<ImgRgba> {

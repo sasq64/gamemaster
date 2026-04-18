@@ -1,9 +1,8 @@
-//! Bitmap drawing utilities using a simple 1D pixel buffer.
-//!
-//! `PixelCanvas` treats `array` as a flat, mutable 1D buffer representing a
-//! `w` by `h` bitmap in row-major order. Pixels are addressed at index
-//! `y * w + x`.
-
+/// Bitmap drawing utilities using a simple 1D pixel buffer.
+///
+/// `PixelCanvas` treats `array` as a flat, mutable 1D buffer representing a
+/// `w` by `h` bitmap in row-major order. Pixels are addressed at index
+/// `y * w + x`.
 pub struct PixelCanvas {
     pub array: Vec<u8>,
     pub width: u32,
@@ -68,9 +67,7 @@ impl PixelCanvas {
             left += 1;
 
             let mut right = cx + 1;
-            while (right as u32) < self.width
-                && self.array[self.index(right, cy)] == target_col
-            {
+            while (right as u32) < self.width && self.array[self.index(right, cy)] == target_col {
                 let i = self.index(right, cy);
                 self.array[i] = col;
                 right += 1;
@@ -81,8 +78,7 @@ impl PixelCanvas {
                 if cy - 1 >= 0 && self.array[self.index(i, cy - 1)] == target_col {
                     stack.push((i, cy - 1));
                 }
-                if (cy + 1) < self.height as i32
-                    && self.array[self.index(i, cy + 1)] == target_col
+                if (cy + 1) < self.height as i32 && self.array[self.index(i, cy + 1)] == target_col
                 {
                     stack.push((i, cy + 1));
                 }

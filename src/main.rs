@@ -12,8 +12,7 @@ use rustix::termios::tcgetwinsize;
 use crossterm::event::{Event, EventStream, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{
-    ExecutableCommand, QueueableCommand,
-    cursor,
+    ExecutableCommand, cursor,
     event::KeyCode,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -29,6 +28,7 @@ use ratatui::{
     backend::CrosstermBackend,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
+    style::Color,
     text::{Line, Text},
     widgets::{Paragraph, Widget, Wrap},
 };
@@ -39,6 +39,44 @@ use tokio::select;
 
 use crate::image_drawer::ImageDrawer;
 
+// Kitty unicode placeholder character. Cells containing this codepoint are
+// replaced by image pixels by the terminal.
+const PLACEHOLDER: char = '\u{10EEEE}';
+
+// Fixed image id. Encoded into the cell's foreground color (24-bit RGB) to
+// tell kitty which image to render at each placeholder cell.
+const IMAGE_ID: u32 = 1;
+
+// Combining marks used to encode row/column indices for placeholder cells.
+// Order must match kitty's rowcolumn-diacritics.txt.
+const DIACRITICS: [u32; 297] = [
+    0x0305, 0x030D, 0x030E, 0x0310, 0x0312, 0x033D, 0x033E, 0x033F, 0x0346, 0x034A, 0x034B, 0x034C,
+    0x0350, 0x0351, 0x0352, 0x0357, 0x035B, 0x0363, 0x0364, 0x0365, 0x0366, 0x0367, 0x0368, 0x0369,
+    0x036A, 0x036B, 0x036C, 0x036D, 0x036E, 0x036F, 0x0483, 0x0484, 0x0485, 0x0486, 0x0487, 0x0592,
+    0x0593, 0x0594, 0x0595, 0x0597, 0x0598, 0x0599, 0x059C, 0x059D, 0x059E, 0x059F, 0x05A0, 0x05A1,
+    0x05A8, 0x05A9, 0x05AB, 0x05AC, 0x05AF, 0x05C4, 0x0610, 0x0611, 0x0612, 0x0613, 0x0614, 0x0615,
+    0x0616, 0x0617, 0x0657, 0x0658, 0x0659, 0x065A, 0x065B, 0x065D, 0x065E, 0x06D6, 0x06D7, 0x06D8,
+    0x06D9, 0x06DA, 0x06DB, 0x06DC, 0x06DF, 0x06E0, 0x06E1, 0x06E2, 0x06E4, 0x06E7, 0x06E8, 0x06EB,
+    0x06EC, 0x0730, 0x0732, 0x0733, 0x0735, 0x0736, 0x073A, 0x073D, 0x073F, 0x0740, 0x0741, 0x0743,
+    0x0745, 0x0747, 0x0749, 0x074A, 0x07EB, 0x07EC, 0x07ED, 0x07EE, 0x07EF, 0x07F0, 0x07F1, 0x07F3,
+    0x0816, 0x0817, 0x0818, 0x0819, 0x081B, 0x081C, 0x081D, 0x081E, 0x081F, 0x0820, 0x0821, 0x0822,
+    0x0823, 0x0825, 0x0826, 0x0827, 0x0829, 0x082A, 0x082B, 0x082C, 0x082D, 0x0951, 0x0953, 0x0954,
+    0x0F82, 0x0F83, 0x0F86, 0x0F87, 0x135D, 0x135E, 0x135F, 0x17DD, 0x193A, 0x1A17, 0x1A75, 0x1A76,
+    0x1A77, 0x1A78, 0x1A79, 0x1A7A, 0x1A7B, 0x1A7C, 0x1B6B, 0x1B6D, 0x1B6E, 0x1B6F, 0x1B70, 0x1B71,
+    0x1B72, 0x1B73, 0x1CD0, 0x1CD1, 0x1CD2, 0x1CDA, 0x1CDB, 0x1CE0, 0x1DC0, 0x1DC1, 0x1DC3, 0x1DC4,
+    0x1DC5, 0x1DC6, 0x1DC7, 0x1DC8, 0x1DC9, 0x1DCB, 0x1DCC, 0x1DD1, 0x1DD2, 0x1DD3, 0x1DD4, 0x1DD5,
+    0x1DD6, 0x1DD7, 0x1DD8, 0x1DD9, 0x1DDA, 0x1DDB, 0x1DDC, 0x1DDD, 0x1DDE, 0x1DDF, 0x1DE0, 0x1DE1,
+    0x1DE2, 0x1DE3, 0x1DE4, 0x1DE5, 0x1DE6, 0x1DFE, 0x20D0, 0x20D1, 0x20D4, 0x20D5, 0x20D6, 0x20D7,
+    0x20DB, 0x20DC, 0x20E1, 0x20E7, 0x20E9, 0x20F0, 0x2CEF, 0x2CF0, 0x2CF1, 0x2DE0, 0x2DE1, 0x2DE2,
+    0x2DE3, 0x2DE4, 0x2DE5, 0x2DE6, 0x2DE7, 0x2DE8, 0x2DE9, 0x2DEA, 0x2DEB, 0x2DEC, 0x2DED, 0x2DEE,
+    0x2DEF, 0x2DF0, 0x2DF1, 0x2DF2, 0x2DF3, 0x2DF4, 0x2DF5, 0x2DF6, 0x2DF7, 0x2DF8, 0x2DF9, 0x2DFA,
+    0x2DFB, 0x2DFC, 0x2DFD, 0x2DFE, 0x2DFF, 0xA66F, 0xA67C, 0xA67D, 0xA6F0, 0xA6F1, 0xA8E0, 0xA8E1,
+    0xA8E2, 0xA8E3, 0xA8E4, 0xA8E5, 0xA8E6, 0xA8E7, 0xA8E8, 0xA8E9, 0xA8EA, 0xA8EB, 0xA8EC, 0xA8ED,
+    0xA8EE, 0xA8EF, 0xA8F0, 0xA8F1, 0xAAB0, 0xAAB2, 0xAAB3, 0xAAB7, 0xAAB8, 0xAABE, 0xAABF, 0xAAC1,
+    0xFE20, 0xFE21, 0xFE22, 0xFE23, 0xFE24, 0xFE25, 0xFE26, 0x10A0F, 0x10A38, 0x1D185, 0x1D186,
+    0x1D187, 0x1D188, 0x1D189, 0x1D1AA, 0x1D1AB, 0x1D1AC, 0x1D1AD, 0x1D242, 0x1D243, 0x1D244,
+];
+
 // --- Shell ---
 
 pub struct Shell {
@@ -48,7 +86,10 @@ pub struct Shell {
 
 impl Shell {
     fn new() -> Self {
-        Self { cmd: Vec::new(), edit_pos: 0 }
+        Self {
+            cmd: Vec::new(),
+            edit_pos: 0,
+        }
     }
 
     fn command(&self) -> String {
@@ -74,7 +115,9 @@ impl Shell {
     }
 
     fn del(&mut self) {
-        if self.edit_pos == 0 { return; }
+        if self.edit_pos == 0 {
+            return;
+        }
         self.edit_pos -= 1;
         self.cmd.remove(self.edit_pos);
     }
@@ -130,15 +173,35 @@ fn handle_key(shell: &mut Shell, key: &KeyEvent) -> Action {
 
 // --- Widgets ---
 
-struct ImageWidget;
+struct ImageWidget {
+    cols: u16,
+    rows: u16,
+    image_id: u32,
+}
 
 impl Widget for ImageWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        // Clear all cells in the image area so ratatui's diff engine
-        // writes spaces over any previous content, giving kitty a blank canvas.
-        for y in area.top()..area.bottom() {
-            for x in area.left()..area.right() {
-                buf[(x, y)].reset();
+        let fg = Color::Rgb(
+            ((self.image_id >> 16) & 0xFF) as u8,
+            ((self.image_id >> 8) & 0xFF) as u8,
+            (self.image_id & 0xFF) as u8,
+        );
+        let max = DIACRITICS.len() as u16;
+        let h = self.rows.min(area.height).min(max);
+        let w = self.cols.min(area.width).min(max);
+
+        let mut sym = String::with_capacity(12);
+        for y in 0..h {
+            let row_d = char::from_u32(DIACRITICS[y as usize]).unwrap();
+            for x in 0..w {
+                let col_d = char::from_u32(DIACRITICS[x as usize]).unwrap();
+                sym.clear();
+                sym.push(PLACEHOLDER);
+                sym.push(row_d);
+                sym.push(col_d);
+                let cell = &mut buf[(area.x + x, area.y + y)];
+                cell.set_symbol(&sym);
+                cell.set_fg(fg);
             }
         }
     }
@@ -203,12 +266,11 @@ struct Game {
     output: Vec<String>,
     /// Accumulated text lines from subprocess (for TextWidget)
     text_lines: Vec<String>,
-    /// Current image height in terminal cells (0 = no image yet)
+    /// Current image size in terminal cells (0 = no image yet)
+    image_cols: u16,
     image_rows: u16,
     /// Set when a new image needs to be sent via kitty protocol
     image_dirty: bool,
-    /// Saved from last layout pass — where to draw the kitty image
-    image_area: Option<Rect>,
     /// Terminal cell pixel dimensions
     cell_w: u16,
     cell_h: u16,
@@ -278,10 +340,16 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
     ])
     .areas(frame.area());
 
-    game.image_area = if game.image_rows > 0 { Some(image_area) } else { None };
-
-    ImageWidget.render(image_area, frame.buffer_mut());
-    TextWidget { lines: &game.text_lines }.render(text_area, frame.buffer_mut());
+    ImageWidget {
+        cols: game.image_cols,
+        rows: game.image_rows,
+        image_id: IMAGE_ID,
+    }
+    .render(image_area, frame.buffer_mut());
+    TextWidget {
+        lines: &game.text_lines,
+    }
+    .render(text_area, frame.buffer_mut());
 
     let (before, cursor_ch, after) = game.shell.command_line();
     let prompt_line = Line::from(format!("> {before}{cursor_ch}{after}"));
@@ -307,11 +375,13 @@ fn send_kitty_image(game: &mut Game) -> Result<()> {
     let columns = (width / game.cell_w as u32) as u16;
     let rows = (height / game.cell_h as u32) as u16;
 
-    // Update image_rows so the next draw() allocates the right space
+    // Update image dimensions so the next draw() allocates space and writes
+    // the right number of placeholder cells
+    game.image_cols = columns;
     game.image_rows = rows;
 
     let image = Image {
-        num_or_id: NumberOrId::Number(NonZeroU32::MIN),
+        num_or_id: NumberOrId::Id(NonZeroU32::new(IMAGE_ID).unwrap()),
         format: PixelFormat::Rgba32(ImageDimensions { width, height }, None),
         medium: Medium::Direct {
             chunk_size: None,
@@ -327,20 +397,13 @@ fn send_kitty_image(game: &mut Game) -> Result<()> {
                 ..Default::default()
             },
             cursor_movement: CursorMovementPolicy::DontMove,
+            create_virtual_placement: true,
             ..Default::default()
         },
         placement_id: None,
     };
 
     let mut out = stdout();
-    // Hide cursor during kitty send to avoid visible flicker
-    out.queue(cursor::Hide)?;
-    // Position cursor at the top-left of the reserved image area
-    if let Some(area) = game.image_area {
-        out.queue(cursor::MoveTo(area.x, area.y))?;
-    } else {
-        out.queue(cursor::MoveTo(0, 0))?;
-    }
     action.write_transmit_to(&mut out, Verbosity::Silent)?;
     out.flush()?;
     Ok(())
@@ -381,7 +444,7 @@ async fn main() -> Result<()> {
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
 
-    let _guard = Guard;
+    let _guard = Guard {};
 
     let backend = CrosstermBackend::new(stdout());
     let mut terminal = Terminal::new(backend)?;
@@ -401,9 +464,9 @@ async fn main() -> Result<()> {
         stdout_filters,
         output: vec![],
         text_lines: vec![],
+        image_cols: 0,
         image_rows: 0,
         image_dirty: false,
-        image_area: None,
         cell_w,
         cell_h,
     };
