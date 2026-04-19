@@ -224,7 +224,7 @@ impl ImageDrawer {
         })
     }
 
-    pub fn get_scaled_image_fir(&self, scale: u32) -> Result<ImgRgba> {
+    pub fn get_scaled_image_fir(&self, scale: u32) -> Result<image::RgbaImage> {
         let src = self.get_image()?;
         let sw = src.width * scale;
         let sh = src.height * scale;
@@ -239,11 +239,8 @@ impl ImageDrawer {
             .resize(&src_img, &mut dst_img, &opts)
             .context("fir resize")?;
 
-        Ok(ImgRgba {
-            width: sw,
-            height: sh,
-            rgba: dst_img.into_vec(),
-        })
+        image::RgbaImage::from_raw(sw, sh, dst_img.into_vec())
+            .context("build RgbaImage from fir buffer")
     }
 
     /// Write `game.png` in the current working directory and return its path.
