@@ -75,7 +75,7 @@ impl PixelCanvas {
             right -= 1;
 
             for i in left..=right {
-                if cy - 1 >= 0 && self.array[self.index(i, cy - 1)] == target_col {
+                if cy > 0 && self.array[self.index(i, cy - 1)] == target_col {
                     stack.push((i, cy - 1));
                 }
                 if (cy + 1) < self.height as i32 && self.array[self.index(i, cy + 1)] == target_col

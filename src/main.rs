@@ -1,4 +1,5 @@
 mod draw;
+mod game;
 mod image_drawer;
 mod image_widget;
 
@@ -9,11 +10,10 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use rustix::termios::tcgetwinsize;
 
-use crossterm::event::{Event, EventStream, KeyEvent, KeyModifiers};
+use crossterm::event::EventStream;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{
     ExecutableCommand, cursor,
-    event::KeyCode,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::StreamExt;
@@ -21,7 +21,8 @@ use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
     buffer::Buffer,
-    layout::{Constraint, Flex, Layout, Rect},
+    layout::{Alignment, Constraint, Flex, Layout, Rect},
+    style::{Color, Style},
     text::{Line, Text},
     widgets::{Block, Paragraph, Widget, Wrap},
 };
@@ -29,6 +30,7 @@ use regex::Regex;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::select;
 
+use crate::game::Game;
 use crate::image_drawer::ImageDrawer;
 use crate::image_widget::ImageWidget;
 
@@ -47,11 +49,11 @@ impl Shell {
         }
     }
 
-    fn command(&self) -> String {
+    pub fn command(&self) -> String {
         self.cmd.iter().collect()
     }
 
-    fn command_line(&self) -> (String, char, String) {
+    pub fn command_line(&self) -> (String, char, String) {
         let at_end = self.edit_pos == self.cmd.len();
         (
             self.cmd[..self.edit_pos].iter().collect(),
@@ -64,12 +66,12 @@ impl Shell {
         )
     }
 
-    fn insert(&mut self, c: char) {
+    pub fn insert(&mut self, c: char) {
         self.cmd.insert(self.edit_pos, c);
         self.edit_pos += 1;
     }
 
-    fn del(&mut self) {
+    pub fn del(&mut self) {
         if self.edit_pos == 0 {
             return;
         }
@@ -77,14 +79,14 @@ impl Shell {
         self.cmd.remove(self.edit_pos);
     }
 
-    fn go(&mut self, delta: isize) {
+    pub fn go(&mut self, delta: isize) {
         let p = self.edit_pos as isize + delta;
         if p >= 0 && p <= self.cmd.len() as isize {
             self.edit_pos = p as usize;
         }
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.cmd.clear();
         self.edit_pos = 0;
     }
@@ -100,30 +102,6 @@ impl Drop for Guard {
         let _ = stdout().execute(LeaveAlternateScreen);
         let _ = stdout().execute(cursor::Show);
     }
-}
-
-// --- Key handling ---
-
-enum Action {
-    None,
-    Break,
-    Enter,
-}
-
-fn handle_key(shell: &mut Shell, key: &KeyEvent) -> Action {
-    let m = key.modifiers;
-    match key.code {
-        KeyCode::Enter => return Action::Enter,
-        KeyCode::Left => shell.go(-1),
-        KeyCode::Right => shell.go(1),
-        KeyCode::Backspace => shell.del(),
-        KeyCode::Char('c') if m == KeyModifiers::CONTROL => return Action::Break,
-        KeyCode::Char(c) if m == KeyModifiers::NONE || m == KeyModifiers::SHIFT => {
-            shell.insert(c);
-        }
-        _ => {}
-    }
-    Action::None
 }
 
 // --- Widgets ---
@@ -162,95 +140,33 @@ fn visual_row_count(line: &str, width: usize) -> usize {
     if chars == 0 { 1 } else { chars.div_ceil(width) }
 }
 
-// --- Game state ---
-
-struct Game {
-    shell: Shell,
-    drawer: ImageDrawer,
-    prompt_active: bool,
-    last_output: Instant,
-    command_re: Regex,
-    stdout_filters: Vec<Regex>,
-    /// Commands to send to child stdin
-    output: Vec<String>,
-    /// Accumulated text lines from subprocess (for TextWidget)
-    text_lines: Vec<String>,
-    /// Current image size in terminal cells (0 = no image yet)
-    image_cols: u16,
-    image_rows: u16,
-    /// Set when a new image needs to be sent via kitty protocol
-    image_dirty: bool,
-    /// Terminal cell pixel dimensions
-    cell_w: u16,
-    cell_h: u16,
-}
-
-impl Game {
-    fn tick(&mut self) {
-        if !self.prompt_active && Instant::now() - self.last_output > Duration::from_millis(100) {
-            self.prompt_active = true;
-        }
-    }
-
-    fn handle_line(&mut self, line: &str) -> Result<()> {
-        self.last_output = Instant::now();
-        self.prompt_active = false;
-
-        if let Some(caps) = self.command_re.captures(line) {
-            if !self.drawer.add_text_command(&caps[1]) {
-                return Ok(());
-            }
-            // "line" commands are incremental drawing ops; skip re-rendering image
-            if line.contains("line") {
-                return Ok(());
-            }
-            self.image_dirty = true;
-        } else if !self.stdout_filters.iter().any(|re| re.is_match(line)) {
-            self.text_lines.push(line.to_string());
-        }
-        Ok(())
-    }
-
-    fn handle_event(&mut self, ev: Event) -> Result<bool> {
-        match ev {
-            Event::Resize(cols, rows) => {
-                let size = tcgetwinsize(stdout())?;
-                let c = if cols > 0 { cols } else { size.ws_col };
-                let r = if rows > 0 { rows } else { size.ws_row };
-                self.cell_w = size.ws_xpixel / c;
-                self.cell_h = size.ws_ypixel / r;
-                self.image_dirty = true;
-            }
-            Event::Key(key) => match handle_key(&mut self.shell, &key) {
-                Action::Break => return Ok(true),
-                Action::Enter => {
-                    let mut command = self.shell.command();
-                    self.shell.clear();
-                    command.push('\n');
-                    self.output.push(command);
-                    self.prompt_active = false;
-                    self.last_output = Instant::now();
-                }
-                Action::None => {}
-            },
-            _ => {}
-        }
-        Ok(false)
-    }
-}
-
 // --- Rendering ---
 //
 const IMAGE_ID: u32 = 1;
 
 fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let border = if game.image_rows > 0 { 2 } else { 0 };
-    let [image_row, text_area, prompt_area] = Layout::vertical([
+    let [status_area, image_row, text_area, prompt_area] = Layout::vertical([
+        Constraint::Length(1),
         Constraint::Length(game.image_rows + border),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
     .areas(frame.area());
+
+    let status_style = Style::default().bg(Color::Red).fg(Color::White);
+    let [left_status, right_status] =
+        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .areas(status_area);
+    let (left, right) = game.drawer.get_statusbar();
+    Paragraph::new(left)
+        .style(status_style)
+        .alignment(Alignment::Left)
+        .render(left_status, frame.buffer_mut());
+    Paragraph::new(right)
+        .style(status_style)
+        .alignment(Alignment::Right)
+        .render(right_status, frame.buffer_mut());
 
     if game.image_rows > 0 {
         let [image_area] = Layout::horizontal([Constraint::Length(game.image_cols + 2)])
@@ -369,14 +285,11 @@ async fn main() -> Result<()> {
     let mut should_quit = false;
 
     loop {
-        terminal.draw(|frame| draw_ui(frame, &mut game))?;
-
         if game.image_dirty {
             send_kitty_image(&mut game)?;
             game.image_dirty = false;
-            // Redraw immediately so layout reflects the new image_rows
-            terminal.draw(|frame| draw_ui(frame, &mut game))?;
         }
+        terminal.draw(|frame| draw_ui(frame, &mut game))?;
 
         // Drain pending child stdin writes
         for cmd in game.output.drain(..) {

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
@@ -22,6 +24,8 @@ pub struct ImageDrawer {
     pub colors: [u32; 8],
     pub palette: Vec<u32>,
     pub bitmaps: HashMap<u32, Bitmap>,
+    pub left_status: String,
+    pub right_status: String,
 }
 
 impl Default for ImageDrawer {
@@ -45,7 +49,13 @@ impl ImageDrawer {
             ],
             palette: vec![0; 64],
             bitmaps: HashMap::new(),
+            left_status: "".into(),
+            right_status: "".into(),
         }
+    }
+
+    pub fn get_statusbar(&self) -> (&str, &str) {
+        (&self.left_status, &self.right_status)
     }
 
     /// Parse an integer literal the way Python's `int(s, 0)` does: accepts
@@ -78,6 +88,13 @@ impl ImageDrawer {
         let args: Vec<i64> = parts.filter_map(Self::parse_int).collect();
 
         match cmd {
+            "status" => {
+                let sides = s.split("::");
+                let sides: Vec<_> = sides.collect();
+                self.left_status = sides[1].into();
+                self.right_status = sides[2].into();
+                false
+            }
             "img" if args.len() == 4 => {
                 let no = args[0] as u32;
                 self.bitmaps.insert(
