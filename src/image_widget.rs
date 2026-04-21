@@ -1,5 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
+use kittage::medium::ChunkSize;
 use std::borrow::Cow;
 use std::io::{Write, stdout};
 use std::num::NonZeroU32;
@@ -58,7 +59,7 @@ impl ImageWidget {
             format: PixelFormat::Rgba32(ImageDimensions { width, height }, None),
             medium: Medium::Direct {
                 data: Cow::Borrowed(image),
-                chunk_size: None,
+                chunk_size: Some(ChunkSize::default()),
             },
         };
         let action = KittyAction::Transmit(kitty_image);

@@ -3,11 +3,14 @@ mod game;
 mod image_drawer;
 mod image_widget;
 
-use std::io::stdout;
+use std::io::{Write, stdout};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
+use ratatui::style::Stylize;
+use ratatui::text::Span;
 use rustix::termios::tcgetwinsize;
 
 use crossterm::event::EventStream;
@@ -53,6 +56,10 @@ impl Shell {
         self.cmd.iter().collect()
     }
 
+    pub fn xpos(&self) -> usize {
+        self.edit_pos
+    }
+
     pub fn command_line(&self) -> (String, char, String) {
         let at_end = self.edit_pos == self.cmd.len();
         (
@@ -94,14 +101,37 @@ impl Shell {
 
 // --- Cleanup guard ---
 
+static TERMINAL_RESTORED: AtomicBool = AtomicBool::new(false);
+
 struct Guard;
 
 impl Drop for Guard {
     fn drop(&mut self) {
-        let _ = disable_raw_mode();
-        let _ = stdout().execute(LeaveAlternateScreen);
-        let _ = stdout().execute(cursor::Show);
+        restore_terminal();
     }
+}
+
+fn restore_terminal() {
+    if TERMINAL_RESTORED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let _ = disable_raw_mode();
+    let _ = stdout().execute(LeaveAlternateScreen);
+    let _ = stdout().execute(cursor::Show);
+    let _ = stdout().flush();
+}
+
+/// Install a panic hook that restores the terminal and then writes the panic
+/// message directly to stdout (same stream as the terminal commands, flushed
+/// explicitly) so the error is visible instead of being lost to the
+/// alt-screen / raw-mode state.
+fn install_panic_hook() {
+    std::panic::set_hook(Box::new(|info| {
+        restore_terminal();
+        let mut out = stdout().lock();
+        let _ = writeln!(out, "\n{info}");
+        let _ = out.flush();
+    }));
 }
 
 // --- Widgets ---
@@ -141,11 +171,13 @@ fn visual_row_count(line: &str, width: usize) -> usize {
 }
 
 // --- Rendering ---
-//
+
 const IMAGE_ID: u32 = 1;
 
 fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let border = if game.image_rows > 0 { 2 } else { 0 };
+
+    // Layout
     let [status_area, image_row, text_area, prompt_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(game.image_rows + border),
@@ -153,11 +185,23 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
         Constraint::Length(1),
     ])
     .areas(frame.area());
-
-    let status_style = Style::default().bg(Color::Red).fg(Color::White);
     let [left_status, right_status] =
         Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
             .areas(status_area);
+    let [image_area] = Layout::horizontal([Constraint::Length(60)])
+        .flex(Flex::Center)
+        .areas(image_row);
+
+    let [_, text_area, _] = Layout::horizontal([
+        Constraint::Length(4),
+        Constraint::Min(1),
+        Constraint::Length(4),
+    ])
+    .areas(text_area);
+
+    //
+
+    let status_style = Style::default().bg(Color::Red).fg(Color::White);
     let (left, right) = game.drawer.get_statusbar();
     Paragraph::new(left)
         .style(status_style)
@@ -169,9 +213,6 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
         .render(right_status, frame.buffer_mut());
 
     if game.image_rows > 0 {
-        let [image_area] = Layout::horizontal([Constraint::Length(game.image_cols + 2)])
-            .flex(Flex::Center)
-            .areas(image_row);
         let block = Block::bordered();
         let inner = block.inner(image_area);
         block.render(image_area, frame.buffer_mut());
@@ -182,25 +223,28 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
     }
     .render(text_area, frame.buffer_mut());
 
-    let (before, cursor_ch, after) = game.shell.command_line();
-    let prompt_line = Line::from(format!("> {before}{cursor_ch}{after}"));
+    let text = game.shell.command();
+    let prompt_line = Line::from(vec![
+        Span::styled("> ", Style::default().fg(Color::LightRed).bold()),
+        Span::raw(text),
+    ]);
     Paragraph::new(prompt_line).render(prompt_area, frame.buffer_mut());
 
     // Show the real terminal cursor at the input position when waiting for input
     if game.prompt_active {
-        let cursor_col = prompt_area.x + 2 + before.chars().count() as u16;
+        let cursor_col = prompt_area.x + 2 + game.shell.xpos() as u16;
         frame.set_cursor_position((cursor_col, prompt_area.y));
     }
 }
 
 fn send_kitty_image(game: &mut Game) -> Result<()> {
-    let w = game.drawer.get_canvas_size().0;
-    let mut scale = 1u32;
-    while (w * scale) < 60 * game.cell_w as u32 {
-        scale += 1;
-    }
+    //let w = game.drawer.get_canvas_size().0;
+    let mut scale = 4u32;
+    //while (w * scale) < 60 * game.cell_w as u32 {
+    //    scale += 1;
+    //}
 
-    let rgba = game.drawer.get_scaled_image_fir(scale)?;
+    let rgba = game.drawer.get_scaled_image(scale)?;
     let width = rgba.width();
     let height = rgba.height();
     let columns = (width / game.cell_w as u32) as u16;
@@ -248,6 +292,7 @@ async fn main() -> Result<()> {
     let command_re = Regex::new(r"#\[(.*?)\]\n?").expect("Invalid regex");
 
     // Setup terminal
+    install_panic_hook();
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
 
@@ -284,12 +329,18 @@ async fn main() -> Result<()> {
 
     let mut should_quit = false;
 
+    let mut frame_dirty = true;
+
     loop {
         if game.image_dirty {
             send_kitty_image(&mut game)?;
             game.image_dirty = false;
+            frame_dirty = true;
         }
-        terminal.draw(|frame| draw_ui(frame, &mut game))?;
+        if frame_dirty {
+            frame_dirty = false;
+            terminal.draw(|frame| draw_ui(frame, &mut game))?;
+        }
 
         // Drain pending child stdin writes
         for cmd in game.output.drain(..) {
@@ -307,11 +358,15 @@ async fn main() -> Result<()> {
                 game.tick();
             },
             res = stdout_lines.next_line() => match res? {
-                Some(line) => game.handle_line(&line)?,
+                Some(line) => {
+                    frame_dirty = true;
+                    game.handle_line(&line)?;
+                }
                 None => break,
             },
             ev = event_stream.next() => {
                 let Some(ev) = ev else { break };
+                frame_dirty = true;
                 if game.handle_event(ev?)? {
                     should_quit = true;
                 }
