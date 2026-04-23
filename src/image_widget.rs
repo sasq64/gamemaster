@@ -1,15 +1,41 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use kittage::medium::ChunkSize;
+use ratatui::buffer::Cell;
 use std::borrow::Cow;
 use std::io::{Write, stdout};
 use std::num::NonZeroU32;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static NEXT_IMAGE_ID: AtomicU32 = AtomicU32::new(1);
 
 use kittage::ImageDimensions;
 use kittage::{
     NumberOrId, PixelFormat, Verbosity, action::Action as KittyAction, image::Image, medium::Medium,
 };
 use ratatui::{buffer::Buffer, layout::Rect, style::Color, widgets::Widget};
+
+struct CachedWidget<'a> {
+    cells: &'a Vec<Cell>,
+    width: usize,
+}
+
+impl Widget for CachedWidget<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        let mut i = 0;
+        for y in area.y..area.height {
+            for x in area.x..area.width {
+                if let Some(cell) = buf.cell_mut((x, y)) {
+                    *cell = self.cells[i].clone();
+                }
+                i += 1;
+            }
+        }
+    }
+}
 
 // Kitty unicode placeholder character. Cells containing this codepoint are
 // replaced by image pixels by the terminal.
@@ -46,14 +72,24 @@ const DIACRITICS: [u32; 297] = [
 ];
 
 pub(crate) struct ImageWidget {
-    pub(crate) image_id: u32,
+    pub(crate) image_id: NonZeroU32,
 }
 
 impl ImageWidget {
-    pub fn create_image(id: u32, image: &image::RgbaImage) -> Result<NonZeroU32> {
+    /// Create and transmit an image using the kitty protocol
+    pub fn create_image(
+        image: &image::RgbaImage,
+        image_id: Option<NonZeroU32>,
+    ) -> Result<NonZeroU32> {
         let (width, height) = image.dimensions();
 
-        let image_id = NonZeroU32::new(id).ok_or(anyhow!(""))?;
+        let image_id = match image_id {
+            Some(id) => id,
+            None => {
+                let id = NEXT_IMAGE_ID.fetch_add(1, Ordering::Relaxed);
+                NonZeroU32::new(id).expect("image id counter exhausted")
+            }
+        };
         let kitty_image = Image {
             num_or_id: NumberOrId::Id(image_id),
             format: PixelFormat::Rgba32(ImageDimensions { width, height }, None),
@@ -93,30 +129,21 @@ impl ImageWidget {
 
 impl Widget for ImageWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        //let h = self.rows.min(area.height).min(max);
-        //let w = self.cols.min(area.width).min(max);
-        //let columns = (width / cell_w as u32) as u16;
-        //let rows = (height / cell_h as u32) as u16;
         let columns = area.width;
         let rows = area.height;
-        let image_id = NonZeroU32::new(self.image_id).unwrap();
-        ImageWidget::display_image(image_id, columns, rows);
+        ImageWidget::display_image(self.image_id, columns, rows);
+        let id = self.image_id.get();
         let fg = Color::Rgb(
-            ((self.image_id >> 16) & 0xFF) as u8,
-            ((self.image_id >> 8) & 0xFF) as u8,
-            (self.image_id & 0xFF) as u8,
+            ((id >> 16) & 0xFF) as u8,
+            ((id >> 8) & 0xFF) as u8,
+            (id & 0xFF) as u8,
         );
-        let mut sym = String::with_capacity(12);
         for y in 0..rows {
             let row_d = char::from_u32(DIACRITICS[y as usize]).unwrap();
             for x in 0..columns {
                 let col_d = char::from_u32(DIACRITICS[x as usize]).unwrap();
-                sym.clear();
-                sym.push(PLACEHOLDER);
-                sym.push(row_d);
-                sym.push(col_d);
                 let cell = &mut buf[(area.x + x, area.y + y)];
-                cell.set_symbol(&sym);
+                cell.set_symbol(&String::from_iter([PLACEHOLDER, row_d, col_d]));
                 cell.set_fg(fg);
             }
         }

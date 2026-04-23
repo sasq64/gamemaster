@@ -1,4 +1,5 @@
 use std::io::stdout;
+use std::num::NonZeroU32;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -45,6 +46,8 @@ pub struct Game {
     /// Current image size in terminal cells (0 = no image yet)
     pub image_cols: u16,
     pub image_rows: u16,
+    /// Kitty image id of the most recently transmitted image
+    pub image_id: Option<NonZeroU32>,
     /// Set when a new image needs to be sent via kitty protocol
     pub image_dirty: bool,
     /// Terminal cell pixel dimensions
@@ -94,6 +97,7 @@ impl Game {
                     let mut command = self.shell.command();
                     self.shell.clear();
                     command.push('\n');
+                    self.text_lines.push(format!("> {command}"));
                     self.output.push(command);
                     self.prompt_active = false;
                     self.last_output = Instant::now();

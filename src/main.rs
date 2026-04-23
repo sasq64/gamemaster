@@ -145,34 +145,19 @@ impl Widget for TextWidget<'_> {
         if area.height == 0 || area.width == 0 {
             return;
         }
-        let width = area.width as usize;
         let height = area.height as usize;
 
-        let total_rows: usize = self.lines.iter().map(|l| visual_row_count(l, width)).sum();
+        let display: Vec<Line> = self.lines.iter().map(|l| Line::raw(l.as_str())).collect();
+        let paragraph = Paragraph::new(Text::from(display)).wrap(Wrap { trim: false });
+
+        let total_rows = paragraph.line_count(area.width);
         let scroll = total_rows.saturating_sub(height).min(u16::MAX as usize) as u16;
 
-        let display: Vec<Line> = self.lines.iter().map(|l| Line::raw(l.as_str())).collect();
-
-        Paragraph::new(Text::from(display))
-            .wrap(Wrap { trim: false })
-            .scroll((scroll, 0))
-            .render(area, buf);
+        paragraph.scroll((scroll, 0)).render(area, buf);
     }
-}
-
-/// Estimate the number of visual rows a line occupies when word-wrapped to
-/// `width` columns. Uses character count as a close approximation.
-fn visual_row_count(line: &str, width: usize) -> usize {
-    if width == 0 {
-        return 1;
-    }
-    let chars = line.chars().count();
-    if chars == 0 { 1 } else { chars.div_ceil(width) }
 }
 
 // --- Rendering ---
-
-const IMAGE_ID: u32 = 1;
 
 fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let border = if game.image_rows > 0 { 2 } else { 0 };
@@ -188,7 +173,7 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let [left_status, right_status] =
         Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
             .areas(status_area);
-    let [image_area] = Layout::horizontal([Constraint::Length(60)])
+    let [image_area] = Layout::horizontal([Constraint::Length(game.image_cols)])
         .flex(Flex::Center)
         .areas(image_row);
 
@@ -201,8 +186,11 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
 
     //
 
-    let status_style = Style::default().bg(Color::Red).fg(Color::White);
+    let status_style = Style::default()
+        .bg(Color::Red)
+        .fg(Color::Rgb(0xff, 0xff, 0xff));
     let (left, right) = game.drawer.get_statusbar();
+
     Paragraph::new(left)
         .style(status_style)
         .alignment(Alignment::Left)
@@ -212,11 +200,13 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
         .alignment(Alignment::Right)
         .render(right_status, frame.buffer_mut());
 
-    if game.image_rows > 0 {
+    if game.image_rows > 0
+        && let Some(image_id) = game.image_id
+    {
         let block = Block::bordered();
         let inner = block.inner(image_area);
         block.render(image_area, frame.buffer_mut());
-        ImageWidget { image_id: IMAGE_ID }.render(inner, frame.buffer_mut());
+        ImageWidget { image_id }.render(inner, frame.buffer_mut());
     }
     TextWidget {
         lines: &game.text_lines,
@@ -231,15 +221,15 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
     Paragraph::new(prompt_line).render(prompt_area, frame.buffer_mut());
 
     // Show the real terminal cursor at the input position when waiting for input
-    if game.prompt_active {
-        let cursor_col = prompt_area.x + 2 + game.shell.xpos() as u16;
-        frame.set_cursor_position((cursor_col, prompt_area.y));
-    }
+    //if game.prompt_active {
+    let cursor_col = prompt_area.x + 2 + game.shell.xpos() as u16;
+    frame.set_cursor_position((cursor_col, prompt_area.y));
+    //}
 }
 
 fn send_kitty_image(game: &mut Game) -> Result<()> {
     //let w = game.drawer.get_canvas_size().0;
-    let mut scale = 4u32;
+    let scale = 4u32;
     //while (w * scale) < 60 * game.cell_w as u32 {
     //    scale += 1;
     //}
@@ -247,16 +237,17 @@ fn send_kitty_image(game: &mut Game) -> Result<()> {
     let rgba = game.drawer.get_scaled_image(scale)?;
     let width = rgba.width();
     let height = rgba.height();
-    let columns = (width / game.cell_w as u32) as u16;
-    let rows = (height / game.cell_h as u32) as u16;
+    let columns = width / game.cell_w as u32;
+    let cols = 80;
+    let rows = (height * cols / (game.cell_h as u32 * columns)) as u16;
 
-    let id = ImageWidget::create_image(IMAGE_ID, &rgba)?;
-    ImageWidget::display_image(id, columns, rows);
+    let id = ImageWidget::create_image(&rgba, game.image_id)?;
 
     // Update image dimensions so the next draw() allocates space and writes
     // the right number of placeholder cells
-    game.image_cols = columns;
+    game.image_cols = cols as u16;
     game.image_rows = rows;
+    game.image_id = Some(id);
     Ok(())
 }
 
@@ -284,7 +275,7 @@ async fn main() -> Result<()> {
 
     let mut stdout_lines = BufReader::new(stdout_pipe).lines();
 
-    let stdout_filters: Vec<Regex> = [r"Score: "]
+    let stdout_filters: Vec<Regex> = [r"normal formatting.", "^Loading ", r"^>\s*$"]
         .iter()
         .map(|p| Regex::new(p).expect("invalid filter regex"))
         .collect();
@@ -318,6 +309,7 @@ async fn main() -> Result<()> {
         text_lines: vec![],
         image_cols: 0,
         image_rows: 0,
+        image_id: None,
         image_dirty: false,
         cell_w,
         cell_h,
