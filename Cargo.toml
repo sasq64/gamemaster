@@ -28,6 +28,7 @@ fast_image_resize = "5"
 image = "0.25.10"
 color-eyre = "0.6.5"
 textwrap = "0.16.2"
+clap = { version = "4.6.1", features = ["derive"] }
 
 [profile.release]
 debug = true

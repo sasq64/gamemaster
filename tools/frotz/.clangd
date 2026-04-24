@@ -1,3 +1,2 @@
-
 CompileFlags:
-    CompilationDatabase: ../../build/frotz/
+    CompilationDatabase: ../../build/frotz/build/

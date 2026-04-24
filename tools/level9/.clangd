@@ -1,3 +1,2 @@
-
 CompileFlags:
-    CompilationDatabase: ../../build/level9/
+    CompilationDatabase: ../../build/level9/build/

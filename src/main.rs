@@ -4,11 +4,13 @@ mod image_drawer;
 mod image_widget;
 
 use std::io::{Write, stdout};
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
+use clap::Parser;
 use ratatui::style::Stylize;
 use ratatui::text::Span;
 use rustix::termios::tcgetwinsize;
@@ -36,6 +38,12 @@ use tokio::select;
 use crate::game::Game;
 use crate::image_drawer::ImageDrawer;
 use crate::image_widget::ImageWidget;
+
+#[derive(Default, Parser, Debug, Clone)]
+#[command(version, about, author, long_about = None)]
+pub struct Args {
+    game: PathBuf,
+}
 
 // --- Shell ---
 
@@ -255,6 +263,8 @@ fn send_kitty_image(game: &mut Game) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     let mut argv = std::env::args().skip(1);
     let program = match argv.next() {
         Some(p) => p,
