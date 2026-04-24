@@ -13,6 +13,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use ratatui::style::Stylize;
 use ratatui::text::Span;
+use rustix::path::Arg;
 use rustix::termios::tcgetwinsize;
 
 use crossterm::event::EventStream;
@@ -43,6 +44,7 @@ use crate::image_widget::ImageWidget;
 #[command(version, about, author, long_about = None)]
 pub struct Args {
     game: PathBuf,
+    extra_file: Option<PathBuf>,
 }
 
 // --- Shell ---
@@ -259,21 +261,54 @@ fn send_kitty_image(game: &mut Game) -> Result<()> {
     Ok(())
 }
 
-// --- Main ---
+struct Tool {
+    program: &'static str,
+    args: &'static [&'static str],
+    pattern: Regex,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    let cmdline = Args::parse();
 
-    let mut argv = std::env::args().skip(1);
-    let program = match argv.next() {
-        Some(p) => p,
-        None => anyhow::bail!("usage: gamemaster <program> [args...]"),
+    let game = cmdline.game.as_str()?;
+
+    let tools = [
+        Tool {
+            pattern: Regex::new(r"\.z(\d|code)$")?,
+            args: &["-m", "-w", "120"],
+            program: "bin/dfrotz",
+        },
+        Tool {
+            pattern: Regex::new(r"\.l(evel)?9$")?,
+            args: &[],
+            program: "bin/level9",
+        },
+        Tool {
+            pattern: Regex::new(r"\.mag$")?,
+            args: &[],
+            program: "bin/magnetic",
+        },
+    ];
+
+    let Some((program, args)) = tools.iter().find_map(|tool| {
+        if tool.pattern.is_match(game) {
+            Some((tool.program, tool.args))
+        } else {
+            None
+        }
+    }) else {
+        return Ok(());
     };
-    let args: Vec<String> = argv.collect();
 
-    let mut child = tokio::process::Command::new(&program)
-        .args(&args)
+    let mut args: Vec<&str> = args.into();
+    args.push(game);
+    if let Some(extra) = &cmdline.extra_file {
+        args.push(extra.as_str()?);
+    }
+
+    let mut child = tokio::process::Command::new(program)
+        .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

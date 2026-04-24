@@ -1,5 +1,4 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use kittage::medium::ChunkSize;
 use ratatui::buffer::Cell;
 use std::borrow::Cow;
