@@ -7,3 +7,9 @@ Play graphical interactive fiction in your terminal
 You need rust, c++ & cmake
 
 `cargo build`
+
+## Run
+
+`cargo run -- games/the_pawn.mag games/the_pawn.gfx`
+
+
