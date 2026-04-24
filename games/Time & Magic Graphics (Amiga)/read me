@@ -1,0 +1,37 @@
+Welcome to the worlds of Time & Magik from:
+ Level 9 Computing,
+ PO Box 39,
+ Weston-super-Mare
+ AVON BS24 9UR
+ ENGLAND
+
+If you're stuck, please write, enclosing a self-addressed envelope and a 
+stamp (or 4 international reply coupons) for our Time & Magik cluesheets.
+
+AMIGA Time & Magik has:
+ picture cache to reduce unnecessary disc loads;
+ edit previous commands, by cursor keys and BACKSPACE;
+ SAVE/RESTORE to disc;
+ RAM SAVE/RESTORE in memory;
+ UNDO (take back moves);
+
+(When saving, if a drive name is not given, the file will by default be
+written to drive df0: If you have two drives you may wish to use a fuller
+filename eg. df1:saves/save9 ).
+
+HARD DISCS. Time and Magik is supplied on floppy disc, but we are pretty
+confident that it should work on other disc drives too. (No promises! This
+is a free extra feature, so it's not a bug if the game won't work on your
+peculiar disc drive.) Just copy the disc, file by file, into a folder of
+your choice, and run it by clicking on MENU.
+
+Compatibility: the adventure interpreter on this disc also works with
+Knight Orc and Gnome Ranger. Copy your original and replace MENU, GAME1 
+and PICPROC by the new ones.
+
+Please remember that Level 9 games are protected by copyright and take a
+long time to produce, so only make one copy, for your own use, to keep
+only as long as you have the original game.
+
+Happy Adventuring!
+
