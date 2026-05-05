@@ -1,7 +1,7 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-fn build_cmake_tool(src: &str, bin: &str, bin_dir: &PathBuf, build_root: &PathBuf) {
+fn build_cmake_tool(src: &str, bin: &str, bin_dir: &Path, build_root: &Path) {
     println!("cargo:rerun-if-changed=tools/{src}");
 
     let out_dir = build_root.join(src);

@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use ratatui::style::{Style, Stylize};
+use ratatui::text::Line;
 use regex::Regex;
 use rustix::termios::tcgetwinsize;
 
@@ -42,7 +44,7 @@ pub struct Game {
     /// Commands to send to child stdin
     pub output: Vec<String>,
     /// Accumulated text lines from subprocess (for TextWidget)
-    pub text_lines: Vec<String>,
+    pub text_lines: Vec<Line<'static>>,
     /// Current image size in terminal cells (0 = no image yet)
     pub image_cols: u16,
     pub image_rows: u16,
@@ -76,7 +78,7 @@ impl Game {
             }
             self.image_dirty = true;
         } else if !self.stdout_filters.iter().any(|re| re.is_match(line)) {
-            self.text_lines.push(line.to_string());
+            self.text_lines.push(Line::from(line.to_string()));
         }
         Ok(())
     }
@@ -97,7 +99,9 @@ impl Game {
                     let mut command = self.shell.command();
                     self.shell.clear();
                     command.push('\n');
-                    self.text_lines.push(format!("> {command}"));
+                    let style = Style::new().light_blue();
+                    self.text_lines
+                        .push(Line::from(format!("> {command}")).style(style));
                     self.output.push(command);
                     self.prompt_active = false;
                     self.last_output = Instant::now();

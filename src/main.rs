@@ -147,7 +147,7 @@ fn install_panic_hook() {
 // --- Widgets ---
 
 struct TextWidget<'a> {
-    lines: &'a [String],
+    lines: &'a [Line<'a>],
 }
 
 impl Widget for TextWidget<'_> {
@@ -157,8 +157,7 @@ impl Widget for TextWidget<'_> {
         }
         let height = area.height as usize;
 
-        let display: Vec<Line> = self.lines.iter().map(|l| Line::raw(l.as_str())).collect();
-        let paragraph = Paragraph::new(Text::from(display)).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(Text::from(self.lines.to_vec())).wrap(Wrap { trim: false });
 
         let total_rows = paragraph.line_count(area.width);
         let scroll = total_rows.saturating_sub(height).min(u16::MAX as usize) as u16;
@@ -226,7 +225,7 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let text = game.shell.command();
     let prompt_line = Line::from(vec![
         Span::styled("> ", Style::default().fg(Color::LightRed).bold()),
-        Span::raw(text),
+        Span::styled(text, Style::default().light_blue()),
     ]);
     Paragraph::new(prompt_line).render(prompt_area, frame.buffer_mut());
 
