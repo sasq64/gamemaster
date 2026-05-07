@@ -19,10 +19,9 @@
  * Or visit http://www.fsf.org/
  */
 
-#include <dos.h>
-#include "frotz.h"
 #include "dosfrotz.h"
-
+#include "frotz.h"
+#include <dos.h>
 
 /*
  * detect_mouse
@@ -33,14 +32,11 @@
 bool detect_mouse(void)
 {
 #ifdef __WATCOMC__
-	return dos_mouse_ax(0);
+    return dos_mouse_ax(0);
 #else
-	asm xor ax, ax
-	asm int 0x33
-	return _AX;
+    asm xor ax, ax asm int 0x33 return _AX;
 #endif
 } /* detect_mouse */
-
 
 /*
  * read_mouse
@@ -51,52 +47,47 @@ bool detect_mouse(void)
  */
 int read_mouse(void)
 {
-	int click;
+    int click;
 
-	/* Read the current mouse status */
-	for (click = 0; click < 2; click++) {
+    /* Read the current mouse status */
+    for (click = 0; click < 2; click++) {
 #ifdef __WATCOMC__
-		union {
-			__int64 i;
-			struct {
-				int y, x, released;
-			} s;
-		} u;
-		int released, x, y;
+        union
+        {
+            __int64 i;
+            struct
+            {
+                int y, x, released;
+            } s;
+        } u;
+        int released, x, y;
 #endif
-		if (click == 1)
-			delay(222);
+        if (click == 1) delay(222);
 #ifdef __WATCOMC__
-		/* Capture the returned bx, cx, and dx values all in a
-		   single scalar value... */
-		u.i = dos_mouse_ax_bx(6, 0);
-		released = u.s.released;
-		x = u.s.x;
-		y = u.s.y;
-		if (released == 0)
-			break;
-		mouse_x = x;
-		mouse_y = y;
+        /* Capture the returned bx, cx, and dx values all in a
+           single scalar value... */
+        u.i = dos_mouse_ax_bx(6, 0);
+        released = u.s.released;
+        x = u.s.x;
+        y = u.s.y;
+        if (released == 0) break;
+        mouse_x = x;
+        mouse_y = y;
 #else
-		asm mov ax, 6
-		asm xor bx, bx
-		asm int 0x33
-		if (_BX == 0)
-			break;
-		mouse_x = _CX;
-		mouse_y = _DX;
+        asm mov ax, 6 asm xor bx, bx asm int 0x33 if (_BX == 0) break;
+        mouse_x = _CX;
+        mouse_y = _DX;
 #endif
-		if (display <= _TEXT_) {
-			mouse_x /= 8;
-			mouse_y /= 8;
-		}
+        if (display <= _TEXT_) {
+            mouse_x /= 8;
+            mouse_y /= 8;
+        }
 
-		if (display == _MCGA_)
-			mouse_x /= 2;
+        if (display == _MCGA_) mouse_x /= 2;
 
-		mouse_x++;
-		mouse_y++;
-	}
-	/* Return single or double click */
-	return click;
+        mouse_x++;
+        mouse_y++;
+    }
+    /* Return single or double click */
+    return click;
 } /* read_mouse */

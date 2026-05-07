@@ -24,14 +24,13 @@
 #include "ux_defines.h"
 
 #ifdef USE_NCURSES_H
-#include <ncurses.h>
+#    include <ncurses.h>
 #else
-#include <curses.h>
+#    include <curses.h>
 #endif
 
 #include "ux_frotz.h"
-#ifdef NO_SOUND	/* don't compile this unless we're using no audio */
-
+#ifdef NO_SOUND /* don't compile this unless we're using no audio */
 
 /*
  * os_init_sound
@@ -41,9 +40,8 @@
  */
 void os_init_sound(void)
 {
-	/* Not implemented */
+    /* Not implemented */
 }
-
 
 /*
  * os_beep
@@ -52,11 +50,10 @@ void os_init_sound(void)
  * or low-pitched (number == 2).
  *
  */
-void os_beep (int UNUSED(number))
+void os_beep(int UNUSED(number))
 {
-	beep();
+    beep();
 }
-
 
 /*
  * os_prepare_sample
@@ -64,13 +61,11 @@ void os_beep (int UNUSED(number))
  * Load the sample from the disk.
  *
  */
-void os_prepare_sample (int UNUSED(number))
+void os_prepare_sample(int UNUSED(number))
 {
 
-	/* Not implemented */
-
+    /* Not implemented */
 }
-
 
 /*
  * os_start_sample
@@ -84,13 +79,12 @@ void os_prepare_sample (int UNUSED(number))
  *
  */
 
-void os_start_sample (int UNUSED(number), int UNUSED(volume), int UNUSED(repeats), zword UNUSED(eos))
+void os_start_sample(int UNUSED(number), int UNUSED(volume),
+                     int UNUSED(repeats), zword UNUSED(eos))
 {
 
-	/* Not implemented */
-
+    /* Not implemented */
 }
-
 
 /*
  * os_stop_sample
@@ -98,13 +92,11 @@ void os_start_sample (int UNUSED(number), int UNUSED(volume), int UNUSED(repeats
  * Turn off the current sample.
  *
  */
-void os_stop_sample (int UNUSED(number))
+void os_stop_sample(int UNUSED(number))
 {
 
     /* Not implemented */
-
 }
-
 
 /*
  * os_finish_with_sample
@@ -112,11 +104,10 @@ void os_stop_sample (int UNUSED(number))
  * Remove the current sample from memory (if any).
  *
  */
-void os_finish_with_sample (int UNUSED(number))
+void os_finish_with_sample(int UNUSED(number))
 {
 
     /* Not implemented */
-
 }
 
 /*
@@ -126,11 +117,10 @@ void os_finish_with_sample (int UNUSED(number))
  *
  */
 
-void os_wait_sample (void)
+void os_wait_sample(void)
 {
 
     /* Not implemented */
-
 }
 
 #endif /* NO_SOUND */

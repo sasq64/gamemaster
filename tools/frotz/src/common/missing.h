@@ -18,28 +18,28 @@
 #define MISSING_H
 
 #ifdef NO_STRRCHR
-char *my_strrchr(const char *, int);
-#define strrchr my_strrchr
+char* my_strrchr(const char*, int);
+#    define strrchr my_strrchr
 #endif
 
 #ifdef NO_MEMMOVE
-void *my_memmove(void *, const void *, size_t);
-#define memmove my_memmove
+void* my_memmove(void*, const void*, size_t);
+#    define memmove my_memmove
 #endif
 
 #ifdef NO_STRDUP
-char *my_strdup(const char *);
-#define strdup my_strdup
+char* my_strdup(const char*);
+#    define strdup my_strdup
 #endif
 
 #ifdef NO_STRNDUP
-char *my_strndup(const char *, size_t);
-#define strndup my_strndup
+char* my_strndup(const char*, size_t);
+#    define strndup my_strndup
 #endif
 
 #ifdef NO_BASENAME
-char *my_basename(const char *);
-#define basename my_basename
+char* my_basename(const char*);
+#    define basename my_basename
 #endif
 
 #endif /* MISSING_H */

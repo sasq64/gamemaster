@@ -24,23 +24,23 @@
  *
  */
 
-#include <stdlib.h>
 #include "frotz.h"
+#include <stdlib.h>
 
 #ifndef MSDOS_16BIT
-#define cdecl
+#    define cdecl
 #endif
 
-extern void interpret (void);
-extern void init_memory (void);
-extern void init_undo (void);
-extern void reset_screen (void);
-extern void reset_memory (void);
+extern void interpret(void);
+extern void init_memory(void);
+extern void init_undo(void);
+extern void reset_screen(void);
+extern void reset_memory(void);
 
 bool need_newline_at_exit = FALSE;
 
 /* Story file name, id number and size */
-char *story_name = 0;
+char* story_name = 0;
 enum story story_id = UNKNOWN;
 long story_size = 0;
 
@@ -52,8 +52,8 @@ extern z_header_t z_header;
 
 /* Stack data */
 zword stack[STACK_SIZE];
-zword *sp = 0;
-zword *fp = 0;
+zword* sp = 0;
+zword* fp = 0;
 zword frame_count = 0;
 
 /* IO streams */
@@ -77,7 +77,7 @@ bool enable_scrolling = FALSE;
 bool enable_buffering = FALSE;
 
 int option_sound = 1;
-char *option_zcode_path;
+char* option_zcode_path;
 
 /* Size of memory to reserve (in bytes) */
 long reserve_mem = 0;
@@ -95,9 +95,8 @@ bool spurious_getchar = FALSE;
  */
 void z_piracy(void)
 {
-	branch (!f_setup.piracy);
+    branch(!f_setup.piracy);
 } /* z_piracy */
-
 
 /*
  * main
@@ -106,27 +105,27 @@ void z_piracy(void)
  *
  */
 #ifdef TOPS20
-int main (int argc, char *argv[])
+int main(int argc, char* argv[])
 #else
-int cdecl main(int argc, char *argv[])
+int cdecl main(int argc, char* argv[])
 #endif
 {
-	init_header();
-	init_setup();
-	os_init_setup();
-	os_process_arguments(argc, argv);
-	init_buffer();
-	init_err();
-	init_memory();
-	init_process();
-	init_sound();
-	os_init_screen();
-	init_undo();
-	z_restart();
-	interpret();
-	reset_screen();
-	reset_memory();
-	os_reset_screen();
-	os_quit(EXIT_SUCCESS);
-	return 0;
+    init_header();
+    init_setup();
+    os_init_setup();
+    os_process_arguments(argc, argv);
+    init_buffer();
+    init_err();
+    init_memory();
+    init_process();
+    init_sound();
+    os_init_screen();
+    init_undo();
+    z_restart();
+    interpret();
+    reset_screen();
+    reset_memory();
+    os_reset_screen();
+    os_quit(EXIT_SUCCESS);
+    return 0;
 } /* main */

@@ -9,31 +9,31 @@
 #define DOSFROTZ_H
 
 #ifndef MAX
-#define MAX(x,y) ((x)>(y)) ? (x) : (y)
+#    define MAX(x, y) ((x) > (y)) ? (x) : (y)
 #endif
 #ifndef MIN
-#define MIN(x,y) ((x)<(y)) ? (x) : (y)
+#    define MIN(x, y) ((x) < (y)) ? (x) : (y)
 #endif
 
-#define MASK_LINEAR(addr)	(addr & 0x000FFFFF)
-#define RM_TO_LINEAR(addr)	(((addr & 0xFFFF0000) >> 12) + (addr & 0xFFFF))
-#define RM_OFFSET(addr)		(addr & 0xF)
-#define RM_SEGMENT(addr)	((addr >> 4) & 0xFFFF)
+#define MASK_LINEAR(addr) (addr & 0x000FFFFF)
+#define RM_TO_LINEAR(addr) (((addr & 0xFFFF0000) >> 12) + (addr & 0xFFFF))
+#define RM_OFFSET(addr) (addr & 0xF)
+#define RM_SEGMENT(addr) ((addr >> 4) & 0xFFFF)
 
 #define OS_PATH_SEPARATOR '\\'
 #define OS_ALT_PATH_SEPARATOR '/'
 
 #define OS_SEARCH_PATHSEP ';'
 
-#define byte0(v)	((byte *)&v)[0]
-#define byte1(v)	((byte *)&v)[1]
-#define byte2(v)	((byte *)&v)[2]
-#define byte3(v)	((byte *)&v)[3]
-#define word0(v)	((word *)&v)[0]
-#define word1(v)	((word *)&v)[1]
+#define byte0(v) ((byte*)&v)[0]
+#define byte1(v) ((byte*)&v)[1]
+#define byte2(v) ((byte*)&v)[2]
+#define byte3(v) ((byte*)&v)[3]
+#define word0(v) ((word*)&v)[0]
+#define word1(v) ((word*)&v)[1]
 
 #ifndef HISTORY_MIN_ENTRY
-#define HISTORY_MIN_ENTRY 1
+#    define HISTORY_MIN_ENTRY 1
 #endif
 
 #define SPECIAL_KEY_MIN 256
@@ -48,12 +48,12 @@
 #define SPECIAL_KEY_TAB 264
 #define SPECIAL_KEY_MAX 264
 
-#define _MONO_	0
-#define _TEXT_	1
-#define _CGA_	2
-#define _MCGA_	3
-#define _EGA_	4
-#define _AMIGA_	5
+#define _MONO_ 0
+#define _TEXT_ 1
+#define _CGA_ 2
+#define _MCGA_ 3
+#define _EGA_ 4
+#define _AMIGA_ 5
 
 /*
  * For ease of porting from Borland Turbo C to Open Watcom C, define these
@@ -61,23 +61,24 @@
  * <graphics.h> --- as `enum COLORS' --- but Watcom does not.
  */
 #ifdef __WATCOMC__
-enum bc_compatible_colours {
-	BLACK,
-	BLUE,
-	GREEN,
-	CYAN,
-	RED,
-	MAGENTA,
-	BROWN,
-	LIGHTGRAY,
-	DARKGRAY,
-	LIGHTBLUE,
-	LIGHTGREEN,
-	LIGHTCYAN,
-	LIGHTRED,
-	LIGHTMAGENTA,
-	YELLOW,
-	WHITE
+enum bc_compatible_colours
+{
+    BLACK,
+    BLUE,
+    GREEN,
+    CYAN,
+    RED,
+    MAGENTA,
+    BROWN,
+    LIGHTGRAY,
+    DARKGRAY,
+    LIGHTBLUE,
+    LIGHTGREEN,
+    LIGHTCYAN,
+    LIGHTRED,
+    LIGHTMAGENTA,
+    YELLOW,
+    WHITE
 };
 #endif
 
@@ -109,7 +110,7 @@ extern int user_random_seed;
 extern int user_font;
 
 extern char stripped_story_name[];
-extern char *prog_name;
+extern char* prog_name;
 
 extern int current_bg;
 extern int current_fg;
@@ -122,29 +123,29 @@ extern int scaler;
 extern volatile int end_of_sound_flag;
 #endif
 
-/* owinit  */	int	dectoi (const char *);
-/* owinit  */	int	hextoi (const char *);
-/* owmouse */	bool 	detect_mouse (void);
-/* owmouse */	int 	read_mouse (void);
-/* owpic   */	bool 	init_pictures (void);
-/* owpic   */	void 	reset_pictures (void);
+/* owinit  */ int dectoi(const char*);
+/* owinit  */ int hextoi(const char*);
+/* owmouse */ bool detect_mouse(void);
+/* owmouse */ int read_mouse(void);
+/* owpic   */ bool init_pictures(void);
+/* owpic   */ void reset_pictures(void);
 
 #ifndef NO_SOUND
-/* owsmpl  */	bool 	dos_init_sound (void);
-/* owsmpl  */	void 	dos_reset_sound (void);
-/* owinput */	void	end_of_sound(void);
+/* owsmpl  */ bool dos_init_sound(void);
+/* owsmpl  */ void dos_reset_sound(void);
+/* owinput */ void end_of_sound(void);
 #endif
-/* owtext  */	void	switch_scrn_attr (bool);
-/* owtext  */	void 	load_fonts (void);
+/* owtext  */ void switch_scrn_attr(bool);
+/* owtext  */ void load_fonts(void);
 
 #ifdef __WATCOMC__
-#include "inline.h"
-#define outportb(x,y)	outp(x,y)
-#define outport(x,y)	outpw(x,y)
-#define inportb(x)	inp(x)
+#    include "inline.h"
+#    define outportb(x, y) outp(x, y)
+#    define outport(x, y) outpw(x, y)
+#    define inportb(x) inp(x)
 
-#define getvect(x)	_dos_getvect(x)
-#define setvect(x,y)	_dos_setvect(x,y)
+#    define getvect(x) _dos_getvect(x)
+#    define setvect(x, y) _dos_setvect(x, y)
 #endif
 
 #endif

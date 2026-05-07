@@ -10,9 +10,8 @@
 
 #ifndef NO_BLORB
 
-#include "blorb.h"
-#include "blorblow.h"
-
+#    include "blorb.h"
+#    include "blorblow.h"
 
 /*
  * The bb_result_t struct lacks a few members that would make things a
@@ -22,10 +21,11 @@
  * to add these members.
  *
  */
-typedef struct {
-	bb_result_t bbres;
-	unsigned long type;
-	FILE *fp;
+typedef struct
+{
+    bb_result_t bbres;
+    unsigned long type;
+    FILE* fp;
 } myresource;
 
 /* These are used only locally */
@@ -34,9 +34,9 @@ extern bb_err_t		blorb_err;
 extern bb_map_t		*blorb_map;
 extern FILE		*blorb_fp;
 */
-extern bb_result_t	blorb_res;
+extern bb_result_t blorb_res;
 
-bb_err_t dos_blorb_init(char *);
+bb_err_t dos_blorb_init(char*);
 void dos_blorb_stop(void);
 
 #endif

@@ -23,12 +23,11 @@
 extern int save_undo(void);
 
 extern zchar stream_read_key(zword, zword, bool);
-extern zchar stream_read_input(int, zchar *, zword, zword, bool, bool);
+extern zchar stream_read_input(int, zchar*, zword, zword, bool, bool);
 
 extern void tokenise_line(zword, zword, zword, bool);
 zword unicode_tolower(zword);
 static bool truncate_question_mark(void);
-
 
 /*
  * is_terminator
@@ -38,28 +37,23 @@ static bool truncate_question_mark(void);
  */
 bool is_terminator(zchar key)
 {
-	if (key == ZC_TIME_OUT)
-		return TRUE;
-	if (key == ZC_RETURN)
-		return TRUE;
-	if (key >= ZC_HKEY_MIN && key <= ZC_HKEY_MAX)
-		return TRUE;
+    if (key == ZC_TIME_OUT) return TRUE;
+    if (key == ZC_RETURN) return TRUE;
+    if (key >= ZC_HKEY_MIN && key <= ZC_HKEY_MAX) return TRUE;
 
-	if (z_header.terminating_keys != 0) {
-		if (key >= ZC_ARROW_MIN && key <= ZC_MENU_CLICK) {
-			zword addr = z_header.terminating_keys;
-			zbyte c;
-			do {
-				LOW_BYTE(addr, c);
-				if (c == 255 || key == translate_from_zscii(c))
-					return TRUE;
-				addr++;
-			} while (c != 0);
-		}
-	}
-	return FALSE;
+    if (z_header.terminating_keys != 0) {
+        if (key >= ZC_ARROW_MIN && key <= ZC_MENU_CLICK) {
+            zword addr = z_header.terminating_keys;
+            zbyte c;
+            do {
+                LOW_BYTE(addr, c);
+                if (c == 255 || key == translate_from_zscii(c)) return TRUE;
+                addr++;
+            } while (c != 0);
+        }
+    }
+    return FALSE;
 } /* is_terminator */
-
 
 /*
  * z_make_menu, add or remove a menu and branch if successful.
@@ -70,13 +64,12 @@ bool is_terminator(zchar key)
  */
 void z_make_menu(void)
 {
-	/* This opcode was only used for the Macintosh version of Journey.
-	 * It controls menus with numbers greater than 2 (menus 0, 1 and 2
-	 * are system menus). Frotz doesn't implement menus yet.
-	 */
-	branch(FALSE);
+    /* This opcode was only used for the Macintosh version of Journey.
+     * It controls menus with numbers greater than 2 (menus 0, 1 and 2
+     * are system menus). Frotz doesn't implement menus yet.
+     */
+    branch(FALSE);
 } /* z_make_menu */
-
 
 /*
  * read_yes_or_no
@@ -84,24 +77,23 @@ void z_make_menu(void)
  * Ask the user a question; return true if the answer is yes.
  *
  */
-bool read_yes_or_no(const char *s)
+bool read_yes_or_no(const char* s)
 {
-	zchar key;
+    zchar key;
 
-	print_string(s);
-	print_string("? (y/n) >");
+    print_string(s);
+    print_string("? (y/n) >");
 
-	key = stream_read_key(0, 0, FALSE);
+    key = stream_read_key(0, 0, FALSE);
 
-	if (key == 'y' || key == 'Y') {
-		print_string("y\n");
-		return TRUE;
-	} else {
-		print_string("n\n");
-		return FALSE;
-	}
+    if (key == 'y' || key == 'Y') {
+        print_string("y\n");
+        return TRUE;
+    } else {
+        print_string("n\n");
+        return FALSE;
+    }
 } /* read_yes_or_no */
-
 
 /*
  * read_string
@@ -110,17 +102,16 @@ bool read_yes_or_no(const char *s)
  *
  */
 
-void read_string (int max, zchar *buffer)
+void read_string(int max, zchar* buffer)
 {
-	zchar key;
+    zchar key;
 
- 	buffer[0] = 0;
+    buffer[0] = 0;
 
-	do {
-		key = stream_read_input(max, buffer, 0, 0, FALSE, FALSE);
-	} while (key != ZC_RETURN);
+    do {
+        key = stream_read_input(max, buffer, 0, 0, FALSE, FALSE);
+    } while (key != ZC_RETURN);
 } /* read_string */
-
 
 /*
  * read_number
@@ -130,19 +121,18 @@ void read_string (int max, zchar *buffer)
  */
 int read_number(void)
 {
-	zchar buffer[6];
-	int value = 0;
-	int i;
+    zchar buffer[6];
+    int value = 0;
+    int i;
 
-	read_string(5, buffer);
+    read_string(5, buffer);
 
-	for (i = 0; buffer[i] != 0; i++) {
-		if (buffer[i] >= '0' && buffer[i] <= '9')
-			value = 10 * value + buffer[i] - '0';
-	}
-	return value;
+    for (i = 0; buffer[i] != 0; i++) {
+        if (buffer[i] >= '0' && buffer[i] <= '9')
+            value = 10 * value + buffer[i] - '0';
+    }
+    return value;
 } /* read_number */
-
 
 /*
  * z_read, read a line of input and (in V5+) store the terminating key.
@@ -155,89 +145,80 @@ int read_number(void)
  */
 void z_read(void)
 {
-	zchar buffer[INPUT_BUFFER_SIZE];
-	zword addr;
-	zchar key;
-	zbyte max, size;
-	zbyte c;
-	int i;
+    zchar buffer[INPUT_BUFFER_SIZE];
+    zword addr;
+    zchar key;
+    zbyte max, size;
+    zbyte c;
+    int i;
 
-	if (f_setup.err_report_repeat > 0) {
-		runtime_error_repeat(f_setup.err_report_repeat);
-		f_setup.err_report_repeat = 0;
-	}
+    if (f_setup.err_report_repeat > 0) {
+        runtime_error_repeat(f_setup.err_report_repeat);
+        f_setup.err_report_repeat = 0;
+    }
 
-	/* Supply default arguments */
-	if (zargc < 4)
-		zargs[3] = 0;
+    /* Supply default arguments */
+    if (zargc < 4) zargs[3] = 0;
 
-	/* Get maximum input size */
-	addr = zargs[0];
-	LOW_BYTE (addr, max);
-	if (z_header.version <= V4)
-		max--;
-	if (max >= INPUT_BUFFER_SIZE)
-		max = INPUT_BUFFER_SIZE - 1;
+    /* Get maximum input size */
+    addr = zargs[0];
+    LOW_BYTE(addr, max);
+    if (z_header.version <= V4) max--;
+    if (max >= INPUT_BUFFER_SIZE) max = INPUT_BUFFER_SIZE - 1;
 
-	/* Get initial input size */
-	if (z_header.version >= V5) {
-		addr++;
-		LOW_BYTE(addr, size);
-	} else size = 0;
+    /* Get initial input size */
+    if (z_header.version >= V5) {
+        addr++;
+        LOW_BYTE(addr, size);
+    } else
+        size = 0;
 
-	/* Copy initial input to local buffer */
-	for (i = 0; i < size; i++) {
-		addr++;
-		LOW_BYTE(addr, c);
-		buffer[i] = translate_from_zscii(c);
-	}
-	buffer[i] = 0;
+    /* Copy initial input to local buffer */
+    for (i = 0; i < size; i++) {
+        addr++;
+        LOW_BYTE(addr, c);
+        buffer[i] = translate_from_zscii(c);
+    }
+    buffer[i] = 0;
 
-	/* Draw status line for V1 to V3 games */
-	if (z_header.version <= V3)
-		z_show_status();
+    /* Draw status line for V1 to V3 games */
+    if (z_header.version <= V3) z_show_status();
 
-	/* Read input from current input stream */
-	key = stream_read_input (
-		max, buffer,		/* buffer and size */
-		zargs[2],		/* timeout value   */
-		zargs[3],		/* timeout routine */
-		TRUE,	        	/* enable hot keys */
-		z_header.version == V6);	/* no script in V6 */
+    /* Read input from current input stream */
+    key = stream_read_input(max, buffer,             /* buffer and size */
+                            zargs[2],                /* timeout value   */
+                            zargs[3],                /* timeout routine */
+                            TRUE,                    /* enable hot keys */
+                            z_header.version == V6); /* no script in V6 */
 
-	if (key == ZC_BAD)
-		return;
+    if (key == ZC_BAD) return;
 
-	/* Perform save_undo for V1 to V4 games */
-	if (z_header.version <= V4)
-		save_undo();
+    /* Perform save_undo for V1 to V4 games */
+    if (z_header.version <= V4) save_undo();
 
-	/* Copy local buffer back to dynamic memory */
-	for (i = 0; buffer[i] != 0; i++) {
-		if (key == ZC_RETURN) {
-			buffer[i] = unicode_tolower(buffer[i]);
-		}
-		if (truncate_question_mark() && buffer[i] == '?')
-			buffer[i] = ' ';
-		storeb((zword) (zargs[0] + ((z_header.version <= V4) ? 1 : 2) + i),
-		    translate_to_zscii (buffer[i]));
-	}
+    /* Copy local buffer back to dynamic memory */
+    for (i = 0; buffer[i] != 0; i++) {
+        if (key == ZC_RETURN) {
+            buffer[i] = unicode_tolower(buffer[i]);
+        }
+        if (truncate_question_mark() && buffer[i] == '?') buffer[i] = ' ';
+        storeb((zword)(zargs[0] + ((z_header.version <= V4) ? 1 : 2) + i),
+               translate_to_zscii(buffer[i]));
+    }
 
-	/* Add null character (V1-V4) or write input length into 2nd byte */
-	if (z_header.version <= V4)
-		storeb((zword) (zargs[0] + 1 + i), 0);
-	else
-		storeb((zword) (zargs[0] + 1), i);
+    /* Add null character (V1-V4) or write input length into 2nd byte */
+    if (z_header.version <= V4)
+        storeb((zword)(zargs[0] + 1 + i), 0);
+    else
+        storeb((zword)(zargs[0] + 1), i);
 
-	/* Tokenise line if a token buffer is present */
-	if (key == ZC_RETURN && zargs[1] != 0)
-		tokenise_line (zargs[0], zargs[1], 0, FALSE);
+    /* Tokenise line if a token buffer is present */
+    if (key == ZC_RETURN && zargs[1] != 0)
+        tokenise_line(zargs[0], zargs[1], 0, FALSE);
 
-	/* Store key */
-	if (z_header.version >= V5)
-		store(translate_to_zscii (key));
+    /* Store key */
+    if (z_header.version >= V5) store(translate_to_zscii(key));
 } /* z_read */
-
 
 /*
  * z_read_char, read and store a key.
@@ -250,40 +231,34 @@ void z_read(void)
 
 void z_read_char(void)
 {
-	zchar key;
+    zchar key;
 
+    if (f_setup.err_report_repeat > 0) {
+        runtime_error_repeat(f_setup.err_report_repeat);
+        f_setup.err_report_repeat = 0;
+    }
 
-        if (f_setup.err_report_repeat > 0) {
-		runtime_error_repeat(f_setup.err_report_repeat);
-		f_setup.err_report_repeat = 0;
-	}
+    /* Supply default arguments */
+    if (zargc < 2) zargs[1] = 0;
+    if (zargc < 3) zargs[2] = 0;
 
-	/* Supply default arguments */
-	if (zargc < 2)
-		zargs[1] = 0;
-	if (zargc < 3)
-		zargs[2] = 0;
+    /* Read input from the current input stream */
+    key = stream_read_key(zargs[1], /* timeout value   */
+                          zargs[2], /* timeout routine */
+                          TRUE);    /* enable hot keys */
 
-	/* Read input from the current input stream */
-	key = stream_read_key(
-		zargs[1],	/* timeout value   */
-		zargs[2],	/* timeout routine */
-		TRUE);  	/* enable hot keys */
+    if (key == ZC_BAD) return;
 
-	if (key == ZC_BAD)
-		return;
-
-	/* Store key */
-	/* For timeouts, make sure translate_to_zscii() won't try to convert
-	 * 0x00.  We should instead return 0x00 as is.
-	 * Thanks to Peter Seebach.
-	 */
-	if (key == 0)
-		store(key);
-	else
-		store(translate_to_zscii (key));
+    /* Store key */
+    /* For timeouts, make sure translate_to_zscii() won't try to convert
+     * 0x00.  We should instead return 0x00 as is.
+     * Thanks to Peter Seebach.
+     */
+    if (key == 0)
+        store(key);
+    else
+        store(translate_to_zscii(key));
 } /* z_read_char */
-
 
 /*
  * z_read_mouse, write the current mouse status into a table.
@@ -294,24 +269,23 @@ void z_read_char(void)
 
 void z_read_mouse(void)
 {
-	zword btn;
+    zword btn;
 
-	btn = 1;
+    btn = 1;
 
-	/** I don't remember what was going on here */
-	/* Read the mouse position and which buttons are down */
-/*
-	btn = os_read_mouse ();
-	z_header.x_mouse_y = mouse_y;
-	z_header.x_mouse_x = mouse_x;
-*/
-	storew((zword) (zargs[0] + 0), z_header.x_mouse_y);
-	storew((zword) (zargs[0] + 2), z_header.x_mouse_x);
-	storew((zword) (zargs[0] + 4), btn);	/* mouse button bits */
-	storew((zword) (zargs[0] + 6), 0);	/* menu selection */
+    /** I don't remember what was going on here */
+    /* Read the mouse position and which buttons are down */
+    /*
+        btn = os_read_mouse ();
+        z_header.x_mouse_y = mouse_y;
+        z_header.x_mouse_x = mouse_x;
+    */
+    storew((zword)(zargs[0] + 0), z_header.x_mouse_y);
+    storew((zword)(zargs[0] + 2), z_header.x_mouse_x);
+    storew((zword)(zargs[0] + 4), btn); /* mouse button bits */
+    storew((zword)(zargs[0] + 6), 0);   /* menu selection */
 
 } /* z_read_mouse */
-
 
 /*
  * truncate_question_mark
@@ -332,23 +306,23 @@ void z_read_mouse(void)
  */
 static bool truncate_question_mark(void)
 {
-	if (story_id == ZORK1) return TRUE;
-	if (story_id == ZORK2) return TRUE;
-	if (story_id == ZORK3) return TRUE;
-	if (story_id == MINIZORK) return TRUE;
-	if (story_id == SAMPLER1) return TRUE;
-	if (story_id == SAMPLER2) return TRUE;
-	if (story_id == ENCHANTER) return TRUE;
-	if (story_id == SORCERER) return TRUE;
-	if (story_id == SPELLBREAKER) return TRUE;
-	if (story_id == PLANETFALL) return TRUE;
-	if (story_id == STATIONFALL) return TRUE;
-	if (story_id == BALLYHOO) return TRUE;
-	if (story_id == BORDER_ZONE) return TRUE;
-	if (story_id == AMFV) return TRUE;
-	if (story_id == HHGG) return TRUE;
-	if (story_id == LGOP) return TRUE;
-	if (story_id == SUSPECT) return TRUE;
+    if (story_id == ZORK1) return TRUE;
+    if (story_id == ZORK2) return TRUE;
+    if (story_id == ZORK3) return TRUE;
+    if (story_id == MINIZORK) return TRUE;
+    if (story_id == SAMPLER1) return TRUE;
+    if (story_id == SAMPLER2) return TRUE;
+    if (story_id == ENCHANTER) return TRUE;
+    if (story_id == SORCERER) return TRUE;
+    if (story_id == SPELLBREAKER) return TRUE;
+    if (story_id == PLANETFALL) return TRUE;
+    if (story_id == STATIONFALL) return TRUE;
+    if (story_id == BALLYHOO) return TRUE;
+    if (story_id == BORDER_ZONE) return TRUE;
+    if (story_id == AMFV) return TRUE;
+    if (story_id == HHGG) return TRUE;
+    if (story_id == LGOP) return TRUE;
+    if (story_id == SUSPECT) return TRUE;
 
-	return FALSE;
+    return FALSE;
 } /* truncate_question_mark */

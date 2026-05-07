@@ -8,7 +8,8 @@
 #ifndef X_INFO_H
 #define X_INFO_H
 
-#define INFORMATION "\
+#define INFORMATION                                                            \
+    "\
   -aa   watch attribute setting   \t -P   alter piracy opcode\n\
   -at   watch attribute testing   \t -rm # right margin\n\
   -bg <colorname> background color\t -rs # random number seed value\n\
@@ -21,7 +22,8 @@
   -L  <file> load this save file  \t -xrm <resources> Set X11 resources\n\
   -om   watch object locating     \t -zs # error checking (see below)\n"
 
-#define INFO2 "\
+#define INFO2                                                                  \
+    "\
 Error checking: 0 none, 1 first only (default), 2 all, 3 exit after any error.\n\
 For more options and explanations, please read the manual page.\n"
 

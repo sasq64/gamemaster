@@ -30,12 +30,11 @@
 void z_add(void)
 {
 #ifdef TOPS20
-	store((zword) zargs[0] + zargs[1]);
+    store((zword)zargs[0] + zargs[1]);
 #else
-	store((zword) ((short) zargs[0] + (short) zargs[1]));
+    store((zword)((short)zargs[0] + (short)zargs[1]));
 #endif
 } /* z_add */
-
 
 /*
  * z_and, bitwise AND operation.
@@ -47,12 +46,11 @@ void z_add(void)
 void z_and(void)
 {
 #ifdef TOPS20
-	store ((zword) ((zargs[0] & zargs[1]) & 0xffff));
+    store((zword)((zargs[0] & zargs[1]) & 0xffff));
 #else
-    store ((zword) (zargs[0] & zargs[1]));
+    store((zword)(zargs[0] & zargs[1]));
 #endif
 } /* z_and */
-
 
 /*
  * z_art_shift, arithmetic SHIFT operation.
@@ -64,22 +62,21 @@ void z_and(void)
 void z_art_shift(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
+    short sz0, sz1;
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
 
-	if (sz1 > 0)
-		store (((zword) ( sz0 << sz1 )) & 0xffff );
-	else
-		store (((zword) ( sz0 >> -sz1 )) & 0xffff );
+    if (sz1 > 0)
+        store(((zword)(sz0 << sz1)) & 0xffff);
+    else
+        store(((zword)(sz0 >> -sz1)) & 0xffff);
 #else
-	if ((short) zargs[1] > 0)
-		store((zword) ((short) zargs[0] << (short) zargs[1]));
-	else
-		store((zword) ((short) zargs[0] >> - (short) zargs[1]));
+    if ((short)zargs[1] > 0)
+        store((zword)((short)zargs[0] << (short)zargs[1]));
+    else
+        store((zword)((short)zargs[0] >> -(short)zargs[1]));
 #endif
 } /* z_art_shift */
-
 
 /*
  * z_div, signed 16bit division.
@@ -91,25 +88,22 @@ void z_art_shift(void)
 void z_div(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
-	zword z;
+    short sz0, sz1;
+    zword z;
 
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
 
-	if (sz1 == 0)
-		runtime_error (ERR_DIV_ZERO);
+    if (sz1 == 0) runtime_error(ERR_DIV_ZERO);
 
-	z = (zword) (sz0 / sz1);
-	z &= 0xffff;
-	store (z);
+    z = (zword)(sz0 / sz1);
+    z &= 0xffff;
+    store(z);
 #else
-	if (zargs[1] == 0)
-		runtime_error(ERR_DIV_ZERO);
-	store((zword) ((short) zargs[0] / (short) zargs[1]));
+    if (zargs[1] == 0) runtime_error(ERR_DIV_ZERO);
+    store((zword)((short)zargs[0] / (short)zargs[1]));
 #endif
 } /* z_div */
-
 
 /*
  * z_je, branch if the first value equals any of the following.
@@ -122,12 +116,11 @@ void z_div(void)
  */
 void z_je(void)
 {
-	branch (
-		zargc > 1 && (zargs[0] == zargs[1] || (
-		zargc > 2 && (zargs[0] == zargs[2] || (
-		zargc > 3 && (zargs[0] == zargs[3]))))));
+    branch(zargc > 1 &&
+           (zargs[0] == zargs[1] ||
+            (zargc > 2 &&
+             (zargs[0] == zargs[2] || (zargc > 3 && (zargs[0] == zargs[3]))))));
 } /* z_je */
-
 
 /*
  * z_jg, branch if the first value is greater than the second.
@@ -139,16 +132,15 @@ void z_je(void)
 void z_jg(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
+    short sz0, sz1;
 
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
-	branch (sz0 > sz1);
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
+    branch(sz0 > sz1);
 #else
-	branch((short) zargs[0] > (short) zargs[1]);
+    branch((short)zargs[0] > (short)zargs[1]);
 #endif
-}/* z_jg */
-
+} /* z_jg */
 
 /*
  * z_jl, branch if the first value is less than the second.
@@ -160,17 +152,16 @@ void z_jg(void)
 void z_jl(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
+    short sz0, sz1;
 
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
 
-	branch (sz0 < sz1);
+    branch(sz0 < sz1);
 #else
-	branch((short) zargs[0] < (short) zargs[1]);
+    branch((short)zargs[0] < (short)zargs[1]);
 #endif
 } /* z_jl */
-
 
 /*
  * z_jz, branch if value is zero.
@@ -181,15 +172,14 @@ void z_jl(void)
 void z_jz(void)
 {
 #ifdef TOPS20
-	short sz;
+    short sz;
 
-	sz = s16(zargs[0]);
-	branch (sz == 0);
+    sz = s16(zargs[0]);
+    branch(sz == 0);
 #else
-	branch((short) zargs[0] == 0);
+    branch((short)zargs[0] == 0);
 #endif
 } /* z_jz */
-
 
 /*
  * z_log_shift, logical SHIFT operation.
@@ -201,21 +191,20 @@ void z_jz(void)
 void z_log_shift(void)
 {
 #ifdef TOPS20
-	short sz1;
+    short sz1;
 
-	sz1 = s16(zargs[1]);
-	if (sz1 > 0)
-		store ((zword) (zargs[0] << sz1));
-	else
-		store ((zword) (zargs[0] >> -sz1));
+    sz1 = s16(zargs[1]);
+    if (sz1 > 0)
+        store((zword)(zargs[0] << sz1));
+    else
+        store((zword)(zargs[0] >> -sz1));
 #else
-	if ((short) zargs[1] > 0)
-		store((zword) (zargs[0] << (short) zargs[1]));
-	else
-		store((zword) (zargs[0] >> - (short) zargs[1]));
+    if ((short)zargs[1] > 0)
+        store((zword)(zargs[0] << (short)zargs[1]));
+    else
+        store((zword)(zargs[0] >> -(short)zargs[1]));
 #endif
 } /* z_log_shift */
-
 
 /*
  * z_mod, remainder after signed 16bit division.
@@ -224,25 +213,22 @@ void z_log_shift(void)
  *	zargs[1] = second value
  *
  */
-void z_mod (void)
+void z_mod(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
+    short sz0, sz1;
 
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
-	if (sz1 == 0)
-		runtime_error(ERR_DIV_ZERO);
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
+    if (sz1 == 0) runtime_error(ERR_DIV_ZERO);
 
-	store ((zword) (sz0 % sz1));
+    store((zword)(sz0 % sz1));
 #else
-	if (zargs[1] == 0)
-		runtime_error(ERR_DIV_ZERO);
+    if (zargs[1] == 0) runtime_error(ERR_DIV_ZERO);
 
-	store((zword) ((short) zargs[0] % (short) zargs[1]));
+    store((zword)((short)zargs[0] % (short)zargs[1]));
 #endif
 } /* z_mod */
-
 
 /*
  * z_mul, 16bit multiplication.
@@ -254,16 +240,15 @@ void z_mod (void)
 void z_mul(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
+    short sz0, sz1;
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
 
-	store ((zword) (sz0 * sz1 ));
+    store((zword)(sz0 * sz1));
 #else
-	store((zword) ((short) zargs[0] * (short) zargs[1]));
+    store((zword)((short)zargs[0] * (short)zargs[1]));
 #endif
 } /* z_mul */
-
 
 /*
  * z_not, bitwise NOT operation.
@@ -271,15 +256,14 @@ void z_mul(void)
  * 	zargs[0] = value
  *
  */
-void z_not (void)
+void z_not(void)
 {
 #ifdef TOPS20
-	store (((zword) ~zargs[0]) & 0xffff);
+    store(((zword)~zargs[0]) & 0xffff);
 #else
-	store((zword) ~zargs[0]);
+    store((zword)~zargs[0]);
 #endif
 } /* z_not */
-
 
 /*
  * z_or, bitwise OR operation.
@@ -291,12 +275,11 @@ void z_not (void)
 void z_or(void)
 {
 #ifdef TOPS20
-	store (((zword) (zargs[0] | zargs[1])) & 0xffff);
+    store(((zword)(zargs[0] | zargs[1])) & 0xffff);
 #else
-	store((zword) (zargs[0] | zargs[1]));
+    store((zword)(zargs[0] | zargs[1]));
 #endif
 } /* z_or */
-
 
 /*
  * z_sub, 16bit subtraction.
@@ -308,16 +291,15 @@ void z_or(void)
 void z_sub(void)
 {
 #ifdef TOPS20
-	short sz0, sz1;
+    short sz0, sz1;
 
-	sz0 = s16(zargs[0]);
-	sz1 = s16(zargs[1]);
-	store ((zword) (sz0 - sz1));
+    sz0 = s16(zargs[0]);
+    sz1 = s16(zargs[1]);
+    store((zword)(sz0 - sz1));
 #else
-	store((zword) ((short) zargs[0] - (short) zargs[1]));
+    store((zword)((short)zargs[0] - (short)zargs[1]));
 #endif
 } /* z_sub */
-
 
 /*
  * z_test, branch if all the flags of a bit mask are set in a value.
@@ -329,9 +311,9 @@ void z_sub(void)
 void z_test(void)
 {
 #ifdef TOPS20
-	branch (((zargs[0] & zargs[1]) & 0xffff) == (zargs[1] & 0xffff));
+    branch(((zargs[0] & zargs[1]) & 0xffff) == (zargs[1] & 0xffff));
 #else
-	branch((zargs[0] & zargs[1]) == zargs[1]);
+    branch((zargs[0] & zargs[1]) == zargs[1]);
 #endif
 } /* z_test */
 
@@ -340,11 +322,11 @@ void z_test(void)
  * makes sense only on PDP10 or "certain DSPs".
  */
 #ifdef TOPS20
-short s16(zword z) {
-	short sz;
-	sz = (short) (z & 0xffff);
-	if ((sz > 0 ) && (sz > 32767))
-		sz = - (65536 - sz );
-	return sz;
+short s16(zword z)
+{
+    short sz;
+    sz = (short)(z & 0xffff);
+    if ((sz > 0) && (sz > 32767)) sz = -(65536 - sz);
+    return sz;
 } /* s16 */
 #endif

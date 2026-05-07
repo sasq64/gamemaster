@@ -19,10 +19,10 @@
  * Or visit http://www.fsf.org/
  */
 
-#include <stdio.h>
-#include <signal.h>
-#include <stdlib.h>
 #include <SDL.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "sf_frotz.h"
 
@@ -30,139 +30,129 @@
 
 static void resethandlers(void)
 {
-	signal(SIGINT, SIG_DFL);
-	signal(SIGFPE, SIG_DFL);
-	signal(SIGSEGV, SIG_DFL);
+    signal(SIGINT, SIG_DFL);
+    signal(SIGFPE, SIG_DFL);
+    signal(SIGSEGV, SIG_DFL);
 } /* resethandlers */
 
-
-static const char *signame(int sig)
+static const char* signame(int sig)
 {
-	switch (sig) {
-	case SIGINT:
-		return "[SIGINT]";
-	case SIGFPE:
-		return "[SIGFPE]";
-	case SIGSEGV:
-		return "[SIGSEGV]";
-	default:
-		return "";
-	}
+    switch (sig) {
+    case SIGINT:
+        return "[SIGINT]";
+    case SIGFPE:
+        return "[SIGFPE]";
+    case SIGSEGV:
+        return "[SIGSEGV]";
+    default:
+        return "";
+    }
 } /* signame */
-
 
 static void myhandler(int s)
 {
-	resethandlers();
-	os_fatal("Signal %d received %s", s, signame(s));
+    resethandlers();
+    os_fatal("Signal %d received %s", s, signame(s));
 } /* myhandler */
-
 
 void sf_installhandlers(void)
 {
-	signal(SIGINT, myhandler);
-	signal(SIGFPE, myhandler);
-	signal(SIGSEGV, myhandler);
+    signal(SIGINT, myhandler);
+    signal(SIGFPE, myhandler);
+    signal(SIGSEGV, myhandler);
 } /* sf_installhandlers */
 
 #else
 
-#ifndef NO_EXECINFO_H
-#include <execinfo.h>
-#endif
+#    ifndef NO_EXECINFO_H
+#        include <execinfo.h>
+#    endif
 
 /* get REG_EIP from ucontext.h */
-#ifndef NO_UCONTEXT_H
-#ifndef __USE_GNU
-#define __USE_GNU
-#include <ucontext.h>
-#endif
-#endif
+#    ifndef NO_UCONTEXT_H
+#        ifndef __USE_GNU
+#            define __USE_GNU
+#            include <ucontext.h>
+#        endif
+#    endif
 
 /* REG_EIP does not exist on 64bit CPU */
-#if defined(__amd64__) || defined (__x86_64__)
-#define _PROG_COUNTER REG_RIP
-#else
-#define _PROG_COUNTER REG_EIP
-#endif
+#    if defined(__amd64__) || defined(__x86_64__)
+#        define _PROG_COUNTER REG_RIP
+#    else
+#        define _PROG_COUNTER REG_EIP
+#    endif
 
-static struct {
-	int sig;
-	char *name;
-} NAMES[] = {
-	{SIGSEGV, "SIGSEGV"},
-	{SIGFPE, "SIGFPE"},
-	{SIGILL, "SIGILL"},
-	{0, NULL}
-};
-
-static char *getsigname(int s)
+static struct
 {
-	int i = 0;
-	while (NAMES[i].name) {
-		if (NAMES[i].sig == s)
-			return NAMES[i].name;
-		i++;
-	}
-	return NULL;
+    int sig;
+    char* name;
+} NAMES[] = {
+    {SIGSEGV, "SIGSEGV"}, {SIGFPE, "SIGFPE"}, {SIGILL, "SIGILL"}, {0, NULL}};
+
+static char* getsigname(int s)
+{
+    int i = 0;
+    while (NAMES[i].name) {
+        if (NAMES[i].sig == s) return NAMES[i].name;
+        i++;
+    }
+    return NULL;
 } /* getsigname */
 
-static void bt_sighandler(int sig, siginfo_t * info, void * UNUSED (secret))
+static void bt_sighandler(int sig, siginfo_t* info, void* UNUSED(secret))
 {
 
-	void *trace[16];
-	char *nam;
-	int i, trace_size = 0;
+    void* trace[16];
+    char* nam;
+    int i, trace_size = 0;
 
-	if (sig == SIGINT) {
-		fprintf(stderr, "Emergency Exit (Signal SIGITNT received)\n");
-		SDL_Quit();
-		os_quit(EXIT_FAILURE);
-	}
+    if (sig == SIGINT) {
+        fprintf(stderr, "Emergency Exit (Signal SIGITNT received)\n");
+        SDL_Quit();
+        os_quit(EXIT_FAILURE);
+    }
 
-	/* Do something useful with siginfo_t */
+    /* Do something useful with siginfo_t */
 
-	printf("\nInterpreter bug!\nSignal %d ", sig);
-	if ((nam = getsigname(sig)))
-		printf("[%s] ", nam);
+    printf("\nInterpreter bug!\nSignal %d ", sig);
+    if ((nam = getsigname(sig))) printf("[%s] ", nam);
 
-	if (sig == SIGSEGV)
-		printf(" [faulty address is %p]", info->si_addr);
+    if (sig == SIGSEGV) printf(" [faulty address is %p]", info->si_addr);
 
-	printf("\n");
+    printf("\n");
 
-	trace_size = backtrace(trace, 16);
-	/* overwrite sigaction with caller's address */
-	/* trace[1] = (void *) uc->uc_mcontext.gregs[_PROG_COUNTER]; */
+    trace_size = backtrace(trace, 16);
+    /* overwrite sigaction with caller's address */
+    /* trace[1] = (void *) uc->uc_mcontext.gregs[_PROG_COUNTER]; */
 
-	/* skip first stack frame (points here) */
-	printf("Backtrace:\n");
+    /* skip first stack frame (points here) */
+    printf("Backtrace:\n");
 
-	for (i = 1; i < trace_size; i++) {
-		printf("  ");
-		fflush(stdout);
-		backtrace_symbols_fd(trace + i, 1, fileno(stdout));
-	}
+    for (i = 1; i < trace_size; i++) {
+        printf("  ");
+        fflush(stdout);
+        backtrace_symbols_fd(trace + i, 1, fileno(stdout));
+    }
 
-	os_quit(EXIT_SUCCESS);
+    os_quit(EXIT_SUCCESS);
 } /* bt_sighandler */
-
 
 void sf_installhandlers(void)
 {
 
-	/* Install our signal handler */
-	struct sigaction sa;
+    /* Install our signal handler */
+    struct sigaction sa;
 
-	sa.sa_sigaction = (void *)bt_sighandler;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART | SA_SIGINFO;
+    sa.sa_sigaction = (void*)bt_sighandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	sigaction(SIGSEGV, &sa, NULL);
-	sigaction(SIGUSR1, &sa, NULL);
-	sigaction(SIGFPE, &sa, NULL);
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGILL, &sa, NULL);
+    sigaction(SIGSEGV, &sa, NULL);
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
 
 } /* sf_installhandlers */
 

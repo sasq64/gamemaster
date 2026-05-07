@@ -20,8 +20,13 @@
 
 #include "frotz.h"
 
-enum string_type {
-	LOW_STRING, ABBREVIATION, HIGH_STRING, EMBEDDED_STRING, VOCABULARY
+enum string_type
+{
+    LOW_STRING,
+    ABBREVIATION,
+    HIGH_STRING,
+    EMBEDDED_STRING,
+    VOCABULARY
 };
 
 extern zword object_name(zword);
@@ -36,22 +41,19 @@ static zword encoded[3];
  *   Sat Apr 21, 2001
  */
 static zword zscii_to_latin1[] = {
-	0x0e4, 0x0f6, 0x0fc, 0x0c4, 0x0d6, 0x0dc, 0x0df, 0x0bb,
-	0x0ab, 0x0eb, 0x0ef, 0x0ff, 0x0cb, 0x0cf, 0x0e1, 0x0e9,
-	0x0ed, 0x0f3, 0x0fa, 0x0fd, 0x0c1, 0x0c9, 0x0cd, 0x0d3,
-	0x0da, 0x0dd, 0x0e0, 0x0e8, 0x0ec, 0x0f2, 0x0f9, 0x0c0,
-	0x0c8, 0x0cc, 0x0d2, 0x0d9, 0x0e2, 0x0ea, 0x0ee, 0x0f4,
-	0x0fb, 0x0c2, 0x0ca, 0x0ce, 0x0d4, 0x0db, 0x0e5, 0x0c5,
-	0x0f8, 0x0d8, 0x0e3, 0x0f1, 0x0f5, 0x0c3, 0x0d1, 0x0d5,
-	0x0e6, 0x0c6, 0x0e7, 0x0c7, 0x0fe, 0x0f0, 0x0de, 0x0d0,
+    0x0e4, 0x0f6, 0x0fc, 0x0c4, 0x0d6, 0x0dc, 0x0df, 0x0bb, 0x0ab, 0x0eb, 0x0ef,
+    0x0ff, 0x0cb, 0x0cf, 0x0e1, 0x0e9, 0x0ed, 0x0f3, 0x0fa, 0x0fd, 0x0c1, 0x0c9,
+    0x0cd, 0x0d3, 0x0da, 0x0dd, 0x0e0, 0x0e8, 0x0ec, 0x0f2, 0x0f9, 0x0c0, 0x0c8,
+    0x0cc, 0x0d2, 0x0d9, 0x0e2, 0x0ea, 0x0ee, 0x0f4, 0x0fb, 0x0c2, 0x0ca, 0x0ce,
+    0x0d4, 0x0db, 0x0e5, 0x0c5, 0x0f8, 0x0d8, 0x0e3, 0x0f1, 0x0f5, 0x0c3, 0x0d1,
+    0x0d5, 0x0e6, 0x0c6, 0x0e7, 0x0c7, 0x0fe, 0x0f0, 0x0de, 0x0d0,
 #ifdef USE_UTF8
-	0x0a3, 0x153, 0x152, 0x0a1, 0x0bf
+    0x0a3, 0x153, 0x152, 0x0a1, 0x0bf
 #else
-	0x0a3, 0x0bd, 0x0bc, 0x0a1, 0x0bf
+    0x0a3, 0x0bd, 0x0bc, 0x0a1, 0x0bf
 #endif
 
 };
-
 
 /*
  * translate_from_zscii
@@ -61,44 +63,38 @@ static zword zscii_to_latin1[] = {
  */
 zchar translate_from_zscii(zbyte c)
 {
-	if (c == 0xfc)
-		return ZC_MENU_CLICK;
-	if (c == 0xfd)
-		return ZC_DOUBLE_CLICK;
-	if (c == 0xfe)
-		return ZC_SINGLE_CLICK;
+    if (c == 0xfc) return ZC_MENU_CLICK;
+    if (c == 0xfd) return ZC_DOUBLE_CLICK;
+    if (c == 0xfe) return ZC_SINGLE_CLICK;
 
-	if (c >= 0x9b && story_id != BEYOND_ZORK) {
+    if (c >= 0x9b && story_id != BEYOND_ZORK) {
 
-		if (z_header.x_unicode_table != 0) {	/* game has its own Unicode table */
-			zbyte N;
+        if (z_header.x_unicode_table !=
+            0) { /* game has its own Unicode table */
+            zbyte N;
 
-			LOW_BYTE(z_header.x_unicode_table, N)
-			if (c - 0x9b < N) {
-				zword addr =
-					z_header.x_unicode_table + 1 + 2 * (c - 0x9b);
-				zword unicode;
+            LOW_BYTE(z_header.x_unicode_table, N)
+            if (c - 0x9b < N) {
+                zword addr = z_header.x_unicode_table + 1 + 2 * (c - 0x9b);
+                zword unicode;
 
-				LOW_WORD(addr, unicode)
+                LOW_WORD(addr, unicode)
 #ifdef USE_UTF8
-				if (unicode < 0x20)
-					return '?';
+                if (unicode < 0x20) return '?';
 #else
-				if ((unicode < 0x20) || (unicode > 0xff))
-					return '?';
+                if ((unicode < 0x20) || (unicode > 0xff)) return '?';
 #endif
-				return unicode;
-			} else
-				return '?';
+                return unicode;
+            } else
+                return '?';
 
-		} else if (c <= 0xdf) {	/* game uses standard set */
-			return zscii_to_latin1[c - 0x9b];
-		} else
-			return '?';
-	}
-	return c;
+        } else if (c <= 0xdf) { /* game uses standard set */
+            return zscii_to_latin1[c - 0x9b];
+        } else
+            return '?';
+    }
+    return c;
 } /* translate_from_zscii */
-
 
 /*
  * unicode_to_zscii
@@ -108,36 +104,32 @@ zchar translate_from_zscii(zbyte c)
  */
 zbyte unicode_to_zscii(zchar c)
 {
-	int i;
+    int i;
 
-	if (c >= ZC_LATIN1_MIN) {
-		/* game has its own Unicode table */
-		if (z_header.x_unicode_table != 0) {
-			zbyte N;
-			int i;
+    if (c >= ZC_LATIN1_MIN) {
+        /* game has its own Unicode table */
+        if (z_header.x_unicode_table != 0) {
+            zbyte N;
+            int i;
 
-			LOW_BYTE(z_header.x_unicode_table, N)
-			for (i = 0x9b; i < 0x9b + N; i++) {
-				zword addr =
-					z_header.x_unicode_table + 1 + 2 * (i - 0x9b);
-				zword unicode;
+            LOW_BYTE(z_header.x_unicode_table, N)
+            for (i = 0x9b; i < 0x9b + N; i++) {
+                zword addr = z_header.x_unicode_table + 1 + 2 * (i - 0x9b);
+                zword unicode;
 
-				LOW_WORD(addr, unicode)
-				if (c == unicode)
-					return (zbyte) i;
-			}
-			return 0;
-		} else {	/* game uses standard set */
-			for (i = 0x9b; i <= 0xdf; i++) {
-				if (c == zscii_to_latin1[i - 0x9b])
-					return (zbyte) i;
-			}
-			return 0;
-		}
-	}
-	return (zbyte) c;
+                LOW_WORD(addr, unicode)
+                if (c == unicode) return (zbyte)i;
+            }
+            return 0;
+        } else { /* game uses standard set */
+            for (i = 0x9b; i <= 0xdf; i++) {
+                if (c == zscii_to_latin1[i - 0x9b]) return (zbyte)i;
+            }
+            return 0;
+        }
+    }
+    return (zbyte)c;
 } /* unicode_to_zscii */
-
 
 /*
  * translate_to_zscii
@@ -148,22 +140,16 @@ zbyte unicode_to_zscii(zchar c)
 
 zbyte translate_to_zscii(zchar c)
 {
-	if (c == ZC_SINGLE_CLICK)
-		return 0xfe;
-	if (c == ZC_DOUBLE_CLICK)
-		return 0xfd;
-	if (c == ZC_MENU_CLICK)
-		return 0xfc;
-	if (c == 0)
-		return 0;
+    if (c == ZC_SINGLE_CLICK) return 0xfe;
+    if (c == ZC_DOUBLE_CLICK) return 0xfd;
+    if (c == ZC_MENU_CLICK) return 0xfc;
+    if (c == 0) return 0;
 
-	c = unicode_to_zscii(c);
-	if (c == 0)
-		c = '?';
+    c = unicode_to_zscii(c);
+    if (c == 0) c = '?';
 
-	return (zbyte) c;
+    return (zbyte)c;
 } /* translate_to_zscii */
-
 
 /*
  * alphabet
@@ -173,24 +159,24 @@ zbyte translate_to_zscii(zchar c)
  */
 static zchar alphabet(int set, int index)
 {
-	if (z_header.alphabet != 0) {	/* game uses its own alphabet */
+    if (z_header.alphabet != 0) { /* game uses its own alphabet */
 
-		zbyte c;
+        zbyte c;
 
-		zword addr = z_header.alphabet + 26 * set + index;
-		LOW_BYTE(addr, c)
-		return translate_from_zscii(c);
+        zword addr = z_header.alphabet + 26 * set + index;
+        LOW_BYTE(addr, c)
+        return translate_from_zscii(c);
 
-	} else /* game uses default alphabet */ if (set == 0)
-		return 'a' + index;
-	else if (set == 1)
-		return 'A' + index;
-	else if (z_header.version == V1)
-		return " 0123456789.,!?_#'\"/\\<-:()"[index];
-	else
-		return " ^0123456789.,!?_#'\"/\\-:()"[index];
+    } else /* game uses default alphabet */
+        if (set == 0)
+            return 'a' + index;
+        else if (set == 1)
+            return 'A' + index;
+        else if (z_header.version == V1)
+            return " 0123456789.,!?_#'\"/\\<-:()"[index];
+        else
+            return " ^0123456789.,!?_#'\"/\\-:()"[index];
 } /* alphabet */
-
 
 /*
  * load_string
@@ -200,24 +186,23 @@ static zchar alphabet(int set, int index)
  */
 static void load_string(zword addr, zword length)
 {
-	int resolution = (z_header.version <= V3) ? 2 : 3;
-	int i = 0;
+    int resolution = (z_header.version <= V3) ? 2 : 3;
+    int i = 0;
 
-	while (i < 3 * resolution) {
-		if (i < length) {
+    while (i < 3 * resolution) {
+        if (i < length) {
 
-			zbyte c;
+            zbyte c;
 
-			LOW_BYTE(addr, c)
-			addr++;
+            LOW_BYTE(addr, c)
+            addr++;
 
-			decoded[i++] = translate_from_zscii(c);
+            decoded[i++] = translate_from_zscii(c);
 
-		} else
-			decoded[i++] = 0;
-	}
+        } else
+            decoded[i++] = 0;
+    }
 } /* load_string */
-
 
 /*
  * encode_text
@@ -235,72 +220,68 @@ static void load_string(zword addr, zword length)
  */
 static void encode_text(int padding)
 {
-	/* Pad expansions to same size as decoded[] (10) */
-	static zchar again[] = { 'a', 'g', 'a', 'i', 'n', 0, 0, 0, 0, 0 };
-	static zchar examine[] = { 'e', 'x', 'a', 'm', 'i', 'n', 'e', 0, 0, 0 };
-	static zchar wait[] = { 'w', 'a', 'i', 't', 0, 0, 0, 0, 0, 0 };
+    /* Pad expansions to same size as decoded[] (10) */
+    static zchar again[] = {'a', 'g', 'a', 'i', 'n', 0, 0, 0, 0, 0};
+    static zchar examine[] = {'e', 'x', 'a', 'm', 'i', 'n', 'e', 0, 0, 0};
+    static zchar wait[] = {'w', 'a', 'i', 't', 0, 0, 0, 0, 0, 0};
 
-	zbyte zchars[12];
-	const zchar *ptr = decoded;
-	zchar c;
-	int resolution = (z_header.version <= V3) ? 2 : 3;
-	int i = 0;
+    zbyte zchars[12];
+    const zchar* ptr = decoded;
+    zchar c;
+    int resolution = (z_header.version <= V3) ? 2 : 3;
+    int i = 0;
 
-	/* Expand abbreviations that some old Infocom games lack */
-	if (f_setup.expand_abbreviations)
-		if (padding == 0x05 && decoded[1] == 0)
-			switch (decoded[0]) {
-			case 'g':
-				ptr = again;
-				break;
-			case 'x':
-				ptr = examine;
-				break;
-			case 'z':
-				ptr = wait;
-				break;
-			}
+    /* Expand abbreviations that some old Infocom games lack */
+    if (f_setup.expand_abbreviations)
+        if (padding == 0x05 && decoded[1] == 0) switch (decoded[0]) {
+            case 'g':
+                ptr = again;
+                break;
+            case 'x':
+                ptr = examine;
+                break;
+            case 'z':
+                ptr = wait;
+                break;
+            }
 
-	/* Translate string to a sequence of Z-characters */
-	while (i < 3 * resolution) {
-		if ((c = *ptr++) != 0) {
-			int index, set;
-			zbyte c2;
+    /* Translate string to a sequence of Z-characters */
+    while (i < 3 * resolution) {
+        if ((c = *ptr++) != 0) {
+            int index, set;
+            zbyte c2;
 
-			/* Search character in the alphabet */
-			for (set = 0; set < 3; set++)
-				for (index = 0; index < 26; index++)
-					if (c == alphabet(set, index))
-						goto letter_found;
+            /* Search character in the alphabet */
+            for (set = 0; set < 3; set++)
+                for (index = 0; index < 26; index++)
+                    if (c == alphabet(set, index)) goto letter_found;
 
-			/* Character not found, store its ZSCII value */
-			c2 = translate_to_zscii(c);
-			zchars[i++] = 5;
-			zchars[i++] = 6;
-			zchars[i++] = c2 >> 5;
-			zchars[i++] = c2 & 0x1f;
-			continue;
+            /* Character not found, store its ZSCII value */
+            c2 = translate_to_zscii(c);
+            zchars[i++] = 5;
+            zchars[i++] = 6;
+            zchars[i++] = c2 >> 5;
+            zchars[i++] = c2 & 0x1f;
+            continue;
 
-letter_found:
+        letter_found:
 
-			/* Character found, store its index */
-			if (set != 0)
-				zchars[i++] = ((z_header.version <= V2) ? 1 : 3) + set;
+            /* Character found, store its index */
+            if (set != 0)
+                zchars[i++] = ((z_header.version <= V2) ? 1 : 3) + set;
 
-			zchars[i++] = index + 6;
-		} else
-			zchars[i++] = padding;
-	}
+            zchars[i++] = index + 6;
+        } else
+            zchars[i++] = padding;
+    }
 
-	/* Three Z-characters make a 16bit word */
-	for (i = 0; i < resolution; i++) {
-		encoded[i] =
-			(zchars[3 * i + 0] << 10) |
-			(zchars[3 * i + 1] << 5) | (zchars[3 * i + 2]);
-	}
-	encoded[resolution - 1] |= 0x8000;
+    /* Three Z-characters make a 16bit word */
+    for (i = 0; i < resolution; i++) {
+        encoded[i] = (zchars[3 * i + 0] << 10) | (zchars[3 * i + 1] << 5) |
+                     (zchars[3 * i + 2]);
+    }
+    encoded[resolution - 1] |= 0x8000;
 } /* encode_text */
-
 
 /*
  * z_check_unicode
@@ -313,30 +294,29 @@ letter_found:
 void z_check_unicode(void)
 {
 #ifdef TOPS20
-	zword c = zargs[0] & 0xffff;
+    zword c = zargs[0] & 0xffff;
 #else
-	zword c = zargs[0];
+    zword c = zargs[0];
 #endif
-	if (c >= 0x20 && c <= 0x7e)
-		store(3);
-	else if (c == 0xa0)
-		store(1);
+    if (c >= 0x20 && c <= 0x7e)
+        store(3);
+    else if (c == 0xa0)
+        store(1);
 #ifndef USE_UTF8
-	else if (c >= 0xa1 && c <= 0xff)
-		store(3);
+    else if (c >= 0xa1 && c <= 0xff)
+        store(3);
 #else
-	else if (c >= 0xa1) {
-		/* being optimistic, we can print all unicode characters
-		 * supported and input the ones with zscii representation
-		 */
-		zword mask = (unicode_to_zscii(c) != 0) ? 3 : 1;
-		store(mask & os_check_unicode(get_window_font(cwin), c));
-	}
+    else if (c >= 0xa1) {
+        /* being optimistic, we can print all unicode characters
+         * supported and input the ones with zscii representation
+         */
+        zword mask = (unicode_to_zscii(c) != 0) ? 3 : 1;
+        store(mask & os_check_unicode(get_window_font(cwin), c));
+    }
 #endif
-	else
-		store(0);
+    else
+        store(0);
 } /* z_check_unicode */
-
 
 /*
  * z_encode_text, encode a ZSCII string for use in a dictionary.
@@ -352,19 +332,17 @@ void z_check_unicode(void)
  */
 void z_encode_text(void)
 {
-	int i;
+    int i;
 
 #ifdef TOPS20
-	load_string((zword) ( (zargs[0] + zargs[2]) & 0xffff), \
-		 zargs[1] & 0xffff);
+    load_string((zword)((zargs[0] + zargs[2]) & 0xffff), zargs[1] & 0xffff);
 #else
-	load_string((zword) (zargs[0] + zargs[2]), zargs[1]);
+    load_string((zword)(zargs[0] + zargs[2]), zargs[1]);
 #endif
-	encode_text(0x05);
-	for (i = 0; i < 3; i++)
-		storew((zword) (zargs[3] + 2 * i), encoded[i]);
+    encode_text(0x05);
+    for (i = 0; i < 3; i++)
+        storew((zword)(zargs[3] + 2 * i), encoded[i]);
 } /* z_encode_text */
-
 
 /*
  * decode_text
@@ -386,138 +364,130 @@ void z_encode_text(void)
  * The last type is only used for word completion.
  *
  */
-#define outchar(c)	if (st==VOCABULARY) *ptr++=c; else print_char(c)
+#define outchar(c)                                                             \
+    if (st == VOCABULARY)                                                      \
+        *ptr++ = c;                                                            \
+    else                                                                       \
+        print_char(c)
 static void decode_text(enum string_type st, zword z_addr)
 {
-	zchar *ptr;
-	long byte_addr;
-	zchar c2;
-	zword code;
-	zbyte c, prev_c = 0;
-	int shift_state = 0;
-	int shift_lock = 0;
-	int status = 0;
+    zchar* ptr;
+    long byte_addr;
+    zchar c2;
+    zword code;
+    zbyte c, prev_c = 0;
+    int shift_state = 0;
+    int shift_lock = 0;
+    int status = 0;
 
-	/* Deals with strings that cross the 64K boundary. */
-	zlong addr = (zlong) z_addr;
+    /* Deals with strings that cross the 64K boundary. */
+    zlong addr = (zlong)z_addr;
 
-	ptr = NULL;		/* makes compilers shut up */
-	byte_addr = 0;
+    ptr = NULL; /* makes compilers shut up */
+    byte_addr = 0;
 
-	/* Calculate the byte address if necessary */
-	if (st == ABBREVIATION)
-		byte_addr = (long)addr << 1;
+    /* Calculate the byte address if necessary */
+    if (st == ABBREVIATION)
+        byte_addr = (long)addr << 1;
 
-	else if (st == HIGH_STRING) {
+    else if (st == HIGH_STRING) {
 
-		if (z_header.version <= V3)
-			byte_addr = (long)addr << 1;
-		else if (z_header.version <= V5)
-			byte_addr = (long)addr << 2;
-		else if (z_header.version <= V7)
-			byte_addr =
-				((long)addr << 2) + ((long)z_header.strings_offset << 3);
-		else		/* (z_header.version == V8) */
-			byte_addr = (long)addr << 3;
+        if (z_header.version <= V3)
+            byte_addr = (long)addr << 1;
+        else if (z_header.version <= V5)
+            byte_addr = (long)addr << 2;
+        else if (z_header.version <= V7)
+            byte_addr =
+                ((long)addr << 2) + ((long)z_header.strings_offset << 3);
+        else /* (z_header.version == V8) */
+            byte_addr = (long)addr << 3;
 
-		if (byte_addr >= story_size)
-			runtime_error(ERR_ILL_PRINT_ADDR);
+        if (byte_addr >= story_size) runtime_error(ERR_ILL_PRINT_ADDR);
+    }
 
-	}
+    /* Loop until a 16bit word has the highest bit set */
+    if (st == VOCABULARY) ptr = decoded;
 
-	/* Loop until a 16bit word has the highest bit set */
-	if (st == VOCABULARY)
-		ptr = decoded;
+    do {
+        int i;
 
-	do {
-		int i;
+        if (addr > 0xffff) runtime_error(ERR_ILL_PRINT_ADDR);
 
-		if (addr > 0xffff)
-			runtime_error(ERR_ILL_PRINT_ADDR);
+        /* Fetch the next 16bit word */
+        if (st == LOW_STRING || st == VOCABULARY) {
 
-		/* Fetch the next 16bit word */
-		if (st == LOW_STRING || st == VOCABULARY) {
-
-		/* The LOW_WORD() macro for TurboC can't handle a zword
-		   passed as the address because that macro assumes the
-		   first parameter is a 16-bit value.  Maybe someday I'll
-		   find a clean way to rewrite that macro.  DG.
-		*/
+            /* The LOW_WORD() macro for TurboC can't handle a zword
+               passed as the address because that macro assumes the
+               first parameter is a 16-bit value.  Maybe someday I'll
+               find a clean way to rewrite that macro.  DG.
+            */
 #if defined __TURBOC__
-			zword addr_clipped = (zword) addr;
-			LOW_WORD(addr_clipped, code)
+            zword addr_clipped = (zword)addr;
+            LOW_WORD(addr_clipped, code)
 #else
-			LOW_WORD(addr, code)
+            LOW_WORD(addr, code)
 #endif
-			addr += 2;
-		} else if (st == HIGH_STRING || st == ABBREVIATION) {
-			HIGH_WORD(byte_addr, code)
-			byte_addr += 2;
-		} else
-			CODE_WORD(code)
+            addr += 2;
+        } else if (st == HIGH_STRING || st == ABBREVIATION) {
+            HIGH_WORD(byte_addr, code)
+            byte_addr += 2;
+        } else
+            CODE_WORD(code)
 
-		/* Read its three Z-characters */
-		for (i = 10; i >= 0; i -= 5) {
-			zword abbr_addr;
-			zword ptr_addr;
+        /* Read its three Z-characters */
+        for (i = 10; i >= 0; i -= 5) {
+            zword abbr_addr;
+            zword ptr_addr;
 
-			c = (code >> i) & 0x1f;
+            c = (code >> i) & 0x1f;
 
-			switch (status) {
-			case 0:	/* normal operation */
-				if (shift_state == 2 && c == 6)
-					status = 2;
-				else if (z_header.version == V1 && c == 1)
-					new_line();
-				else if (z_header.version >= V2
-					 && shift_state == 2 && c == 7)
-					new_line();
-				else if (c >= 6)
-					outchar(alphabet
-						(shift_state, c - 6));
-				else if (c == 0)
-					outchar(' ');
-				else if (z_header.version >= V2 && c == 1)
-					status = 1;
-				else if (z_header.version >= V3 && c <= 3)
-					status = 1;
-				else {
-					shift_state =
-					    (shift_lock + (c & 1) + 1) % 3;
-					if (z_header.version <= V2 && c >= 4)
-						shift_lock = shift_state;
-					break;
-				}
-				shift_state = shift_lock;
-				break;
-			case 1:	/* abbreviation */
-				ptr_addr =
-					z_header.abbreviations + 64
-					* (prev_c - 1) + 2 * c;
-				LOW_WORD(ptr_addr, abbr_addr)
-				decode_text(ABBREVIATION,
-					abbr_addr);
-				status = 0;
-				break;
-			case 2:	/* ZSCII character - first part */
-				status = 3;
-				break;
-			case 3:	/* ZSCII character - second part */
-				c2 = translate_from_zscii((prev_c << 5) | c);
-				outchar(c2);
-				status = 0;
-				break;
-			}
-			prev_c = c;
-		}
-	} while (!(code & 0x8000));
+            switch (status) {
+            case 0: /* normal operation */
+                if (shift_state == 2 && c == 6)
+                    status = 2;
+                else if (z_header.version == V1 && c == 1)
+                    new_line();
+                else if (z_header.version >= V2 && shift_state == 2 && c == 7)
+                    new_line();
+                else if (c >= 6)
+                    outchar(alphabet(shift_state, c - 6));
+                else if (c == 0)
+                    outchar(' ');
+                else if (z_header.version >= V2 && c == 1)
+                    status = 1;
+                else if (z_header.version >= V3 && c <= 3)
+                    status = 1;
+                else {
+                    shift_state = (shift_lock + (c & 1) + 1) % 3;
+                    if (z_header.version <= V2 && c >= 4)
+                        shift_lock = shift_state;
+                    break;
+                }
+                shift_state = shift_lock;
+                break;
+            case 1: /* abbreviation */
+                ptr_addr = z_header.abbreviations + 64 * (prev_c - 1) + 2 * c;
+                LOW_WORD(ptr_addr, abbr_addr)
+                decode_text(ABBREVIATION, abbr_addr);
+                status = 0;
+                break;
+            case 2: /* ZSCII character - first part */
+                status = 3;
+                break;
+            case 3: /* ZSCII character - second part */
+                c2 = translate_from_zscii((prev_c << 5) | c);
+                outchar(c2);
+                status = 0;
+                break;
+            }
+            prev_c = c;
+        }
+    } while (!(code & 0x8000));
 
-	if (st == VOCABULARY)
-		*ptr = 0;
+    if (st == VOCABULARY) *ptr = 0;
 } /* decode_text */
 
 #undef outchar
-
 
 /*
  * z_new_line, print a new line.
@@ -527,9 +497,8 @@ static void decode_text(enum string_type st, zword z_addr)
  */
 void z_new_line(void)
 {
-	new_line();
+    new_line();
 } /* z_new_line */
-
 
 /*
  * z_print, print a string embedded in the instruction stream.
@@ -539,9 +508,8 @@ void z_new_line(void)
  */
 void z_print(void)
 {
-	decode_text(EMBEDDED_STRING, 0);
+    decode_text(EMBEDDED_STRING, 0);
 } /* z_print */
-
 
 /*
  * z_print_addr, print a string from the lower 64KB.
@@ -551,9 +519,8 @@ void z_print(void)
  */
 void z_print_addr(void)
 {
-	decode_text(LOW_STRING, zargs[0]);
+    decode_text(LOW_STRING, zargs[0]);
 } /* z_print_addr */
-
 
 /*
  * z_print_char print a single ZSCII character.
@@ -563,9 +530,8 @@ void z_print_addr(void)
  */
 void z_print_char(void)
 {
-	print_char(translate_from_zscii(zargs[0]));
+    print_char(translate_from_zscii(zargs[0]));
 } /* z_print_char */
-
 
 /*
  * z_print_form, print a formatted table.
@@ -575,33 +541,30 @@ void z_print_char(void)
  */
 void z_print_form(void)
 {
-	zword count;
-	zword addr = zargs[0];
+    zword count;
+    zword addr = zargs[0];
 
-	bool first = TRUE;
+    bool first = TRUE;
 
-	for (;;) {
+    for (;;) {
 
-		LOW_WORD(addr, count)
-		addr += 2;
+        LOW_WORD(addr, count)
+        addr += 2;
 
-		if (count == 0)
-			break;
+        if (count == 0) break;
 
-		if (!first)
-			new_line();
+        if (!first) new_line();
 
-		while (count--) {
-			zbyte c;
-			LOW_BYTE(addr, c)
-			addr++;
+        while (count--) {
+            zbyte c;
+            LOW_BYTE(addr, c)
+            addr++;
 
-			print_char(translate_from_zscii(c));
-		}
-		first = FALSE;
-	}
+            print_char(translate_from_zscii(c));
+        }
+        first = FALSE;
+    }
 } /* z_print_form */
-
 
 /*
  * print_num
@@ -612,32 +575,30 @@ void z_print_form(void)
 void print_num(zword value)
 {
 #ifdef TOPS20
-	short sv;
+    short sv;
 #endif
-	int i;
+    int i;
 
-	/* Print sign */
+    /* Print sign */
 #ifdef TOPS20
-	sv = s16(value);
-	if (sv < 0) {
-		print_char ('-');
-		value = -sv & 0xffff;
-	}
+    sv = s16(value);
+    if (sv < 0) {
+        print_char('-');
+        value = -sv & 0xffff;
+    }
 #else
-	if ((short)value < 0) {
-		print_char('-');
-		value = -(short)value;
-	}
+    if ((short)value < 0) {
+        print_char('-');
+        value = -(short)value;
+    }
 #endif
 
-	/* Print absolute value */
-	for (i = 10000; i != 0; i /= 10) {
-		if (value >= i || i == 1)
-			print_char('0' + (value / i) % 10);
-	}
+    /* Print absolute value */
+    for (i = 10000; i != 0; i /= 10) {
+        if (value >= i || i == 1) print_char('0' + (value / i) % 10);
+    }
 
 } /* print_num */
-
 
 /*
  * z_print_num, print a signed number.
@@ -648,12 +609,11 @@ void print_num(zword value)
 void z_print_num(void)
 {
 #ifdef TOPS20
-	print_num(zargs[0] & 0xffff);
+    print_num(zargs[0] & 0xffff);
 #else
-	print_num(zargs[0]);
+    print_num(zargs[0]);
 #endif
 } /* z_print_num */
-
 
 /*
  * print_object
@@ -663,23 +623,22 @@ void z_print_num(void)
  */
 void print_object(zword object)
 {
-	zword addr = object_name(object);
-	zword code = 0x94a5;
-	zbyte length;
+    zword addr = object_name(object);
+    zword code = 0x94a5;
+    zbyte length;
 
-	LOW_BYTE(addr, length)
-	    addr++;
+    LOW_BYTE(addr, length)
+    addr++;
 
-	if (length != 0) {
-		LOW_WORD(addr, code)
-		if (code == 0x94a5) { /* encoded text 0x94a5 == empty string */
-			print_string("object#"); /* supply a generic name */
-			print_num(object);	/* for anonymous objects */
-		} else
-			decode_text(LOW_STRING, addr);
-	}
+    if (length != 0) {
+        LOW_WORD(addr, code)
+        if (code == 0x94a5) {        /* encoded text 0x94a5 == empty string */
+            print_string("object#"); /* supply a generic name */
+            print_num(object);       /* for anonymous objects */
+        } else
+            decode_text(LOW_STRING, addr);
+    }
 } /* print_object */
-
 
 /*
  * z_print_obj, print an object description.
@@ -690,12 +649,11 @@ void print_object(zword object)
 void z_print_obj(void)
 {
 #ifdef TOPS20
-	print_object (zargs[0] & 0xffff);
+    print_object(zargs[0] & 0xffff);
 #else
-	print_object(zargs[0]);
+    print_object(zargs[0]);
 #endif
 } /* z_print_obj */
-
 
 /*
  * z_print_paddr, print the string at the given packed address.
@@ -706,12 +664,11 @@ void z_print_obj(void)
 void z_print_paddr(void)
 {
 #ifdef TOPS20
-	decode_text (HIGH_STRING, zargs[0] & 0xffff);
+    decode_text(HIGH_STRING, zargs[0] & 0xffff);
 #else
-	decode_text(HIGH_STRING, zargs[0]);
+    decode_text(HIGH_STRING, zargs[0]);
 #endif
 } /* z_print_paddr */
-
 
 /*
  * z_print_ret, print the string at PC, print newline then return true.
@@ -721,11 +678,10 @@ void z_print_paddr(void)
  */
 void z_print_ret(void)
 {
-	decode_text(EMBEDDED_STRING, 0);
-	new_line();
-	ret(1);
+    decode_text(EMBEDDED_STRING, 0);
+    new_line();
+    ret(1);
 } /* z_print_ret */
-
 
 /*
  * print_string
@@ -733,18 +689,17 @@ void z_print_ret(void)
  * Print a string of ASCII characters.
  *
  */
-void print_string(const char *s)
+void print_string(const char* s)
 {
-	char c;
+    char c;
 
-	while ((c = *s++) != 0) {
-		if (c == '\n')
-			new_line();
-		else
-			print_char(c);
-	}
+    while ((c = *s++) != 0) {
+        if (c == '\n')
+            new_line();
+        else
+            print_char(c);
+    }
 } /* print_string */
-
 
 /*
  * z_print_unicode
@@ -754,12 +709,11 @@ void print_string(const char *s)
  */
 void z_print_unicode(void)
 {
-	if (zargs[0] < 0x20)
-		print_char('?');
-	else
-		print_char(zargs[0]);
+    if (zargs[0] < 0x20)
+        print_char('?');
+    else
+        print_char(zargs[0]);
 } /* z_print_unicode */
-
 
 /*
  * lookup_text
@@ -776,84 +730,80 @@ void z_print_unicode(void)
  */
 static zword lookup_text(int padding, zword dct)
 {
-	zword entry_addr;
-	zword entry_count;
-	zword entry;
-	zword addr;
-	zbyte entry_len;
-	zbyte sep_count;
-	int resolution = (z_header.version <= V3) ? 2 : 3;
-	int entry_number;
-	int lower, upper;
-	int i;
-	bool sorted;
+    zword entry_addr;
+    zword entry_count;
+    zword entry;
+    zword addr;
+    zbyte entry_len;
+    zbyte sep_count;
+    int resolution = (z_header.version <= V3) ? 2 : 3;
+    int entry_number;
+    int lower, upper;
+    int i;
+    bool sorted;
 #ifdef TOPS20
-	short sec;
+    short sec;
 #endif
 
-	encode_text(padding);
+    encode_text(padding);
 
-	LOW_BYTE(dct, sep_count)	/* skip word separators */
-	dct += 1 + sep_count;
-	LOW_BYTE(dct, entry_len)	/* get length of entries */
-	dct += 1;
-	LOW_WORD(dct, entry_count)	/* get number of entries */
-	dct += 2;
+    LOW_BYTE(dct, sep_count) /* skip word separators */
+    dct += 1 + sep_count;
+    LOW_BYTE(dct, entry_len) /* get length of entries */
+    dct += 1;
+    LOW_WORD(dct, entry_count) /* get number of entries */
+    dct += 2;
 
 #ifdef TOPS20
-	sec = s16(entry_count);
-	if (sec < 0) {			/* bad luck, entries aren't sorted */
-		entry_count = (zword) ((-sec) & 0xffff);
+    sec = s16(entry_count);
+    if (sec < 0) { /* bad luck, entries aren't sorted */
+        entry_count = (zword)((-sec) & 0xffff);
 #else
-	if ((short)entry_count < 0) {	/* bad luck, entries aren't sorted */
-		entry_count = -(short)entry_count;
+    if ((short)entry_count < 0) { /* bad luck, entries aren't sorted */
+        entry_count = -(short)entry_count;
 #endif
-		sorted = FALSE;
-	} else
-		sorted = TRUE;	/* entries are sorted */
+        sorted = FALSE;
+    } else
+        sorted = TRUE; /* entries are sorted */
 
-	lower = 0;
-	upper = entry_count - 1;
+    lower = 0;
+    upper = entry_count - 1;
 
-	while (lower <= upper) {
-		if (sorted)	/* binary search */
-			entry_number = (lower + upper) / 2;
-		else		/* linear search */
-			entry_number = lower;
+    while (lower <= upper) {
+        if (sorted) /* binary search */
+            entry_number = (lower + upper) / 2;
+        else /* linear search */
+            entry_number = lower;
 
-		entry_addr = dct + entry_number * entry_len;
+        entry_addr = dct + entry_number * entry_len;
 
-		/* Compare word to dictionary entry */
-		addr = entry_addr;
+        /* Compare word to dictionary entry */
+        addr = entry_addr;
 
-		for (i = 0; i < resolution; i++) {
-			LOW_WORD(addr, entry)
-			if (encoded[i] != entry)
-				goto continuing;
-			addr += 2;
-		}
-		return entry_addr;	/* exact match found, return now */
+        for (i = 0; i < resolution; i++) {
+            LOW_WORD(addr, entry)
+            if (encoded[i] != entry) goto continuing;
+            addr += 2;
+        }
+        return entry_addr; /* exact match found, return now */
 
-continuing:
-		if (sorted) {	/* binary search */
-			if (encoded[i] > entry)
-				lower = entry_number + 1;
-			else
-				upper = entry_number - 1;
-		} else
-			lower++;	/* linear search */
-	}
+    continuing:
+        if (sorted) { /* binary search */
+            if (encoded[i] > entry)
+                lower = entry_number + 1;
+            else
+                upper = entry_number - 1;
+        } else
+            lower++; /* linear search */
+    }
 
-	/* No exact match has been found */
-	if (padding == 0x05)
-		return 0;
+    /* No exact match has been found */
+    if (padding == 0x05) return 0;
 
-	entry_number = (padding == 0x00) ? lower : upper;
-	if (entry_number == -1 || entry_number == entry_count)
-		return 0;
-	return dct + entry_number * entry_len;
+    entry_number = (padding == 0x00) ? lower : upper;
+    if (entry_number == -1 || entry_number == entry_count) return 0;
+    return dct + entry_number * entry_len;
 } /* lookup_text */
-
 
 /*
  * tokenise_text
@@ -869,25 +819,24 @@ continuing:
 static void tokenise_text(zword text, zword length, zword from, zword parse,
                           zword dct, bool flag)
 {
-	zword addr;
-	zbyte token_max, token_count;
+    zword addr;
+    zbyte token_max, token_count;
 
-	LOW_BYTE(parse, token_max)
-	parse++;
-	LOW_BYTE(parse, token_count)
-	if (token_count < token_max) {	/* sufficient space left for token? */
-		storeb(parse++, token_count + 1);
-		load_string((zword) (text + from), length);
-		addr = lookup_text(0x05, dct);
-		if (addr != 0 || !flag) {
-			parse += 4 * token_count;
-			storew((zword) (parse + 0), addr);
-			storeb((zword) (parse + 2), length);
-			storeb((zword) (parse + 3), from);
-		}
-	}
+    LOW_BYTE(parse, token_max)
+    parse++;
+    LOW_BYTE(parse, token_count)
+    if (token_count < token_max) { /* sufficient space left for token? */
+        storeb(parse++, token_count + 1);
+        load_string((zword)(text + from), length);
+        addr = lookup_text(0x05, dct);
+        if (addr != 0 || !flag) {
+            parse += 4 * token_count;
+            storew((zword)(parse + 0), addr);
+            storeb((zword)(parse + 2), length);
+            storeb((zword)(parse + 3), from);
+        }
+    }
 } /* tokenise_text */
-
 
 /*
  * tokenise_line
@@ -897,80 +846,76 @@ static void tokenise_text(zword text, zword length, zword from, zword parse,
  */
 void tokenise_line(zword text, zword token, zword dct, bool flag)
 {
-	zword addr1;
-	zword addr2;
-	zbyte length;
-	zbyte c;
+    zword addr1;
+    zword addr2;
+    zbyte length;
+    zbyte c;
 
-	length = 0;		/* makes compilers shut up */
+    length = 0; /* makes compilers shut up */
 
-	/* Use standard dictionary if the given dictionary is zero */
-	if (dct == 0)
-		dct = z_header.dictionary;
+    /* Use standard dictionary if the given dictionary is zero */
+    if (dct == 0) dct = z_header.dictionary;
 
-	/* Remove all tokens before inserting new ones */
-	storeb((zword) (token + 1), 0);
+    /* Remove all tokens before inserting new ones */
+    storeb((zword)(token + 1), 0);
 
-	/* Move the first pointer across the text buffer searching for the
-	   beginning of a word. If this succeeds, store the position in a
-	   second pointer. Move the first pointer searching for the end of
-	   the word. When it is found, "tokenise" the word. Continue until
-	   the end of the buffer is reached. */
-	addr1 = text;
-	addr2 = 0;
+    /* Move the first pointer across the text buffer searching for the
+       beginning of a word. If this succeeds, store the position in a
+       second pointer. Move the first pointer searching for the end of
+       the word. When it is found, "tokenise" the word. Continue until
+       the end of the buffer is reached. */
+    addr1 = text;
+    addr2 = 0;
 
-	if (z_header.version >= V5) {
-		addr1++;
-		LOW_BYTE(addr1, length)
-	}
+    if (z_header.version >= V5) {
+        addr1++;
+        LOW_BYTE(addr1, length)
+    }
 
-	do {
-		zword sep_addr;
-		zbyte sep_count;
-		zbyte separator;
+    do {
+        zword sep_addr;
+        zbyte sep_count;
+        zbyte separator;
 
-		/* Fetch next ZSCII character */
+        /* Fetch next ZSCII character */
 
-		addr1++;
+        addr1++;
 
-		if (z_header.version >= V5 && addr1 == text + 2 + length)
-			c = 0;
-		else
-			LOW_BYTE(addr1, c)
+        if (z_header.version >= V5 && addr1 == text + 2 + length)
+            c = 0;
+        else
+            LOW_BYTE(addr1, c)
 
-		/* Check for separator */
-		sep_addr = dct;
+        /* Check for separator */
+        sep_addr = dct;
 
-		LOW_BYTE(sep_addr, sep_count)
-		sep_addr++;
+        LOW_BYTE(sep_addr, sep_count)
+        sep_addr++;
 
-		if (sep_count != 0) {
-			do {
-				LOW_BYTE(sep_addr, separator)
-				sep_addr++;
-			} while (c != separator && --sep_count != 0);
-		}
+        if (sep_count != 0) {
+            do {
+                LOW_BYTE(sep_addr, separator)
+                sep_addr++;
+            } while (c != separator && --sep_count != 0);
+        }
 
-		/* This could be the start or the end of a word */
-		if (sep_count == 0 && c != ' ' && c != 0) {
-			if (addr2 == 0)
-				addr2 = addr1;
-		} else if (addr2 != 0) {
-			tokenise_text(text,
-				(zword) (addr1 - addr2),
-				(zword) (addr2 - text), token, dct, flag);
-			addr2 = 0;
-		}
+        /* This could be the start or the end of a word */
+        if (sep_count == 0 && c != ' ' && c != 0) {
+            if (addr2 == 0) addr2 = addr1;
+        } else if (addr2 != 0) {
+            tokenise_text(text, (zword)(addr1 - addr2), (zword)(addr2 - text),
+                          token, dct, flag);
+            addr2 = 0;
+        }
 
-		/* Translate separator (which is a word in its own right) */
-		if (sep_count != 0) {
-			tokenise_text(text, (zword) (1),
-				(zword) (addr1 - text), token, dct, flag);
-		}
-	} while (c != 0);
+        /* Translate separator (which is a word in its own right) */
+        if (sep_count != 0) {
+            tokenise_text(text, (zword)(1), (zword)(addr1 - text), token, dct,
+                          flag);
+        }
+    } while (c != 0);
 
 } /* tokenise_line */
-
 
 /*
  * z_tokenise, make a lexical analysis of a ZSCII string.
@@ -983,16 +928,13 @@ void tokenise_line(zword text, zword token, zword dct, bool flag)
  */
 void z_tokenise(void)
 {
-	/* Supply default arguments */
-	if (zargc < 3)
-		zargs[2] = 0;
-	if (zargc < 4)
-		zargs[3] = 0;
+    /* Supply default arguments */
+    if (zargc < 3) zargs[2] = 0;
+    if (zargc < 4) zargs[3] = 0;
 
-	/* Call tokenise_line to do the real work */
-	tokenise_line(zargs[0], zargs[1], zargs[2], zargs[3] != 0);
+    /* Call tokenise_line to do the real work */
+    tokenise_line(zargs[0], zargs[1], zargs[2], zargs[3] != 0);
 } /* z_tokenise */
-
 
 /*
  * completion
@@ -1013,57 +955,53 @@ void z_tokenise(void)
  * to the last word that results in the only possible completion.
  *
  */
-int completion(const zchar * buffer, zchar * result)
+int completion(const zchar* buffer, zchar* result)
 {
-	zword minaddr;
-	zword maxaddr;
-	zchar *ptr;
-	zchar c;
-	int len;
-	int i;
+    zword minaddr;
+    zword maxaddr;
+    zchar* ptr;
+    zchar c;
+    int len;
+    int i;
 
-	*result = 0;
+    *result = 0;
 
-	/* Copy last word to "decoded" string */
-	len = 0;
-	while ((c = *buffer++) != 0) {
-		if (c != ' ') {
-			if (len < 9)
-				decoded[len++] = c;
-		} else
-			len = 0;
-	}
+    /* Copy last word to "decoded" string */
+    len = 0;
+    while ((c = *buffer++) != 0) {
+        if (c != ' ') {
+            if (len < 9) decoded[len++] = c;
+        } else
+            len = 0;
+    }
 
-	decoded[len] = 0;
+    decoded[len] = 0;
 
-	/* Search the dictionary for first and last possible extensions */
-	minaddr = lookup_text(0x00, z_header.dictionary);
-	maxaddr = lookup_text(0x1f, z_header.dictionary);
+    /* Search the dictionary for first and last possible extensions */
+    minaddr = lookup_text(0x00, z_header.dictionary);
+    maxaddr = lookup_text(0x1f, z_header.dictionary);
 
-	if (minaddr == 0 || maxaddr == 0 || minaddr > maxaddr)
-		return 2;
+    if (minaddr == 0 || maxaddr == 0 || minaddr > maxaddr) return 2;
 
-	/* Copy first extension to "result" string */
-	decode_text(VOCABULARY, minaddr);
+    /* Copy first extension to "result" string */
+    decode_text(VOCABULARY, minaddr);
 
-	ptr = result;
-	for (i = len; (c = decoded[i]) != 0; i++)
-		*ptr++ = c;
-	*ptr = 0;
+    ptr = result;
+    for (i = len; (c = decoded[i]) != 0; i++)
+        *ptr++ = c;
+    *ptr = 0;
 
-	/* Merge second extension with "result" string */
-	decode_text(VOCABULARY, maxaddr);
+    /* Merge second extension with "result" string */
+    decode_text(VOCABULARY, maxaddr);
 
-	for (i = len, ptr = result; (c = decoded[i]) != 0; i++, ptr++)
-		if (*ptr != c)
-			break;
-	*ptr = 0;
+    for (i = len, ptr = result; (c = decoded[i]) != 0; i++, ptr++)
+        if (*ptr != c) break;
+    *ptr = 0;
 
-	/* Search was ambiguous or successful */
-	return (minaddr == maxaddr) ? 0 : 1;
+    /* Search was ambiguous or successful */
+    return (minaddr == maxaddr) ? 0 : 1;
 
 } /* completion */
-
 
 /*
  * unicode_tolower
@@ -1074,97 +1012,71 @@ int completion(const zchar * buffer, zchar * result)
  */
 zword unicode_tolower(zword c)
 {
-	static const unsigned char tolower_basic_latin[0x100] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-		    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
-		    0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
-		    0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-		    0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-		0x40, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-		    0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
-		0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
-		    0x7A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-		0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-		    0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
-		0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
-		    0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
-		0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
-		    0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-		0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99,
-		    0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-		0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9,
-		    0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-		0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9,
-		    0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-		0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9,
-		    0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-		0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xD7, 0xF8, 0xF9,
-		    0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xDF,
-		0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9,
-		    0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-		0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9,
-		    0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
-	};
-	static const unsigned char tolower_latin_extended_a[0x80] = {
-		0x01, 0x01, 0x03, 0x03, 0x05, 0x05, 0x07, 0x07, 0x09, 0x09,
-		    0x0B, 0x0B, 0x0D, 0x0D, 0x0F, 0x0F,
-		0x11, 0x11, 0x13, 0x13, 0x15, 0x15, 0x17, 0x17, 0x19, 0x19,
-		    0x1B, 0x1B, 0x1D, 0x1D, 0x1F, 0x1F,
-		0x21, 0x21, 0x23, 0x23, 0x25, 0x25, 0x27, 0x27, 0x29, 0x29,
-		    0x2B, 0x2B, 0x2D, 0x2D, 0x2F, 0x2F,
-		0x00, 0x31, 0x33, 0x33, 0x35, 0x35, 0x37, 0x37, 0x38, 0x3A,
-		    0x3A, 0x3C, 0x3C, 0x3E, 0x3E, 0x40,
-		0x40, 0x42, 0x42, 0x44, 0x44, 0x46, 0x46, 0x48, 0x48, 0x49,
-		    0x4B, 0x4B, 0x4D, 0x4D, 0x4F, 0x4F,
-		0x51, 0x51, 0x53, 0x53, 0x55, 0x55, 0x57, 0x57, 0x59, 0x59,
-		    0x5B, 0x5B, 0x5D, 0x5D, 0x5F, 0x5F,
-		0x61, 0x61, 0x63, 0x63, 0x65, 0x65, 0x67, 0x67, 0x69, 0x69,
-		    0x6B, 0x6B, 0x6D, 0x6D, 0x6F, 0x6F,
-		0x71, 0x71, 0x73, 0x73, 0x75, 0x75, 0x77, 0x77, 0x00, 0x7A,
-		    0x7A, 0x7C, 0x7C, 0x7E, 0x7E, 0x7F
-	};
-	static const unsigned char tolower_greek[0x50] = {
-		0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0xAC, 0x87, 0xAD, 0xAE,
-		    0xAF, 0x8B, 0xCC, 0x8D, 0xCD, 0xCE,
-		0x90, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9,
-		    0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-		0xC0, 0xC1, 0xA2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9,
-		    0xCA, 0xCB, 0xAC, 0xAD, 0xAE, 0xAF,
-		0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9,
-		    0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-		0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9,
-		    0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF
-	};
-	static const unsigned char tolower_cyrillic[0x60] = {
-		0x00, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-		    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-		    0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-		0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-		    0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
-		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-		    0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-		0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-		    0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
-		0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-		    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F
-	};
+    static const unsigned char tolower_basic_latin[0x100] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
+        0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23,
+        0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+        0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+        0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73,
+        0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+        0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B,
+        0x6C, 0x6D, 0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+        0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83,
+        0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+        0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B,
+        0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+        0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+        0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB,
+        0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xD7,
+        0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3,
+        0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
+        0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB,
+        0xFC, 0xFD, 0xFE, 0xFF};
+    static const unsigned char tolower_latin_extended_a[0x80] = {
+        0x01, 0x01, 0x03, 0x03, 0x05, 0x05, 0x07, 0x07, 0x09, 0x09, 0x0B, 0x0B,
+        0x0D, 0x0D, 0x0F, 0x0F, 0x11, 0x11, 0x13, 0x13, 0x15, 0x15, 0x17, 0x17,
+        0x19, 0x19, 0x1B, 0x1B, 0x1D, 0x1D, 0x1F, 0x1F, 0x21, 0x21, 0x23, 0x23,
+        0x25, 0x25, 0x27, 0x27, 0x29, 0x29, 0x2B, 0x2B, 0x2D, 0x2D, 0x2F, 0x2F,
+        0x00, 0x31, 0x33, 0x33, 0x35, 0x35, 0x37, 0x37, 0x38, 0x3A, 0x3A, 0x3C,
+        0x3C, 0x3E, 0x3E, 0x40, 0x40, 0x42, 0x42, 0x44, 0x44, 0x46, 0x46, 0x48,
+        0x48, 0x49, 0x4B, 0x4B, 0x4D, 0x4D, 0x4F, 0x4F, 0x51, 0x51, 0x53, 0x53,
+        0x55, 0x55, 0x57, 0x57, 0x59, 0x59, 0x5B, 0x5B, 0x5D, 0x5D, 0x5F, 0x5F,
+        0x61, 0x61, 0x63, 0x63, 0x65, 0x65, 0x67, 0x67, 0x69, 0x69, 0x6B, 0x6B,
+        0x6D, 0x6D, 0x6F, 0x6F, 0x71, 0x71, 0x73, 0x73, 0x75, 0x75, 0x77, 0x77,
+        0x00, 0x7A, 0x7A, 0x7C, 0x7C, 0x7E, 0x7E, 0x7F};
+    static const unsigned char tolower_greek[0x50] = {
+        0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0xAC, 0x87, 0xAD, 0xAE, 0xAF, 0x8B,
+        0xCC, 0x8D, 0xCD, 0xCE, 0x90, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
+        0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xA2, 0xC3,
+        0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xAC, 0xAD, 0xAE, 0xAF,
+        0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB,
+        0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
+        0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF};
+    static const unsigned char tolower_cyrillic[0x60] = {
+        0x00, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B,
+        0x5C, 0x5D, 0x5E, 0x5F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+        0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43,
+        0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+        0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+        0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53,
+        0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F};
 
-	if (c < 0x0100)
-		c = tolower_basic_latin[c];
-	else if (c == 0x0130)
-		c = 0x0069; /* Capital I with dot -> lower case i */
-	else if (c == 0x0178)
-		c = 0x00FF; /* Capital Y diaeresis -> lower case y diaeresis */
-	else if (c < 0x0180)
-		c = tolower_latin_extended_a[c - 0x100] + 0x100;
-	else if (c >= 0x380 && c < 0x3D0)
-		c = tolower_greek[c - 0x380] + 0x300;
-	else if (c >= 0x400 && c < 0x460)
-		c = tolower_cyrillic[c - 0x400] + 0x400;
+    if (c < 0x0100)
+        c = tolower_basic_latin[c];
+    else if (c == 0x0130)
+        c = 0x0069; /* Capital I with dot -> lower case i */
+    else if (c == 0x0178)
+        c = 0x00FF; /* Capital Y diaeresis -> lower case y diaeresis */
+    else if (c < 0x0180)
+        c = tolower_latin_extended_a[c - 0x100] + 0x100;
+    else if (c >= 0x380 && c < 0x3D0)
+        c = tolower_greek[c - 0x380] + 0x300;
+    else if (c >= 0x400 && c < 0x460)
+        c = tolower_cyrillic[c - 0x400] + 0x400;
 
-	return c;
+    return c;
 } /* unicode_tolower */

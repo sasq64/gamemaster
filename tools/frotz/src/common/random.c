@@ -25,7 +25,6 @@ static long A = 1;
 static int interval = 0;
 static int counter = 0;
 
-
 /*
  * seed_random
  *
@@ -34,18 +33,17 @@ static int counter = 0;
  */
 void seed_random(int value)
 {
-	if (value == 0) {		/* ask interface for seed value */
-		A = os_random_seed();
-		interval = 0;
-	} else if (value < 1000) {	/* special seed value */
-		counter = 0;
-		interval = value;
-	} else {			/* standard seed value */
-		A = value;
-		interval = 0;
-	}
+    if (value == 0) { /* ask interface for seed value */
+        A = os_random_seed();
+        interval = 0;
+    } else if (value < 1000) { /* special seed value */
+        counter = 0;
+        interval = value;
+    } else { /* standard seed value */
+        A = value;
+        interval = 0;
+    }
 } /* seed_random */
-
 
 /*
  * z_random, store a random number or set the random number seed.
@@ -56,32 +54,31 @@ void seed_random(int value)
 void z_random()
 {
 #ifdef TOPS20
-	short sz;
-	sz = s16(zargs[0]);
-	if (sz <= 0) {		/* set random seed */
-		seed_random(-sz);
-		store(0);
+    short sz;
+    sz = s16(zargs[0]);
+    if (sz <= 0) { /* set random seed */
+        seed_random(-sz);
+        store(0);
 #else
-	if ((short)zargs[0] <= 0) {	/* set random seed */
-		seed_random(-(short)zargs[0]);
-		store(0);
+    if ((short)zargs[0] <= 0) { /* set random seed */
+        seed_random(-(short)zargs[0]);
+        store(0);
 #endif
-	} else {		/* generate random number */
-		zword result;
+    } else { /* generate random number */
+        zword result;
 
-		if (interval != 0) {	/* ...in special mode */
-			result = counter++;
-			if (counter == interval)
-				counter = 0;
-		} else {	/* ...in standard mode */
-			A = 0x015a4e35L * A + 1;
-			result = (A >> 16) & 0x7fff;
-		}
+        if (interval != 0) { /* ...in special mode */
+            result = counter++;
+            if (counter == interval) counter = 0;
+        } else { /* ...in standard mode */
+            A = 0x015a4e35L * A + 1;
+            result = (A >> 16) & 0x7fff;
+        }
 
 #ifdef TOPS20
-		store((zword) ((result % zargs[0] + 1) & 0xffff));
+        store((zword)((result % zargs[0] + 1) & 0xffff));
 #else
-		store((zword) (result % zargs[0] + 1));
+        store((zword)(result % zargs[0] + 1));
 #endif
-	}
+    }
 } /* z_random */

@@ -20,7 +20,6 @@
 
 #include "frotz.h"
 
-
 /*
  * z_copy_table, copy a table or fill it with zeroes.
  *
@@ -35,49 +34,48 @@
 void z_copy_table(void)
 {
 #ifdef TOPS20
-	short ssz;
+    short ssz;
 #endif
-	zword addr;
-	zword size = zargs[2];
-	zbyte value;
-	int i;
+    zword addr;
+    zword size = zargs[2];
+    zbyte value;
+    int i;
 
 #ifdef TOPS20
-	/* TODO : this looks like it could use some masking.  AT */
-	ssz=s16(size);
-	if (zargs[1] == 0)	/* zero table */
-		for (i = 0; i < (size & 0xffff); i++)
-			storeb ((zword) ((zargs[0] + i) & 0xffff), 0);
-	else if (ssz < 0 || (zargs[0] & 0xffff) > (zargs[1] & 0xffff)) {
-		/*copy forwards */
-		for (i = 0; i < ((ssz < 0) ? - ssz : ssz); i++) {
-			addr = ((zargs[0] + i) & 0xffff);
-			LOW_BYTE (addr, value)
-			storeb((zword) ((zargs[1] + i) & 0xfff), value);
-		}
-	}
+    /* TODO : this looks like it could use some masking.  AT */
+    ssz = s16(size);
+    if (zargs[1] == 0) /* zero table */
+        for (i = 0; i < (size & 0xffff); i++)
+            storeb((zword)((zargs[0] + i) & 0xffff), 0);
+    else if (ssz < 0 || (zargs[0] & 0xffff) > (zargs[1] & 0xffff)) {
+        /*copy forwards */
+        for (i = 0; i < ((ssz < 0) ? -ssz : ssz); i++) {
+            addr = ((zargs[0] + i) & 0xffff);
+            LOW_BYTE(addr, value)
+            storeb((zword)((zargs[1] + i) & 0xfff), value);
+        }
+    }
 #else
-	if (zargs[1] == 0)	/* zero table */
-		for (i = 0; i < size; i++)
-			storeb((zword) (zargs[0] + i), 0);
+    if (zargs[1] == 0) /* zero table */
+        for (i = 0; i < size; i++)
+            storeb((zword)(zargs[0] + i), 0);
 
-	else if ((short)size < 0 || zargs[0] > zargs[1]) { /* copy forwards */
-		for (i = 0; i < (((short)size < 0) ? -(short)size : size); i++) {
-			addr = zargs[0] + i;
-			LOW_BYTE(addr, value)
-			    storeb((zword) (zargs[1] + i), value);
-		}
-	}
+    else if ((short)size < 0 || zargs[0] > zargs[1]) { /* copy forwards */
+        for (i = 0; i < (((short)size < 0) ? -(short)size : size); i++) {
+            addr = zargs[0] + i;
+            LOW_BYTE(addr, value)
+            storeb((zword)(zargs[1] + i), value);
+        }
+    }
 #endif
-	else {	/* copy backwards */
-		for (i = size - 1; i >= 0; i--) {
-			addr = zargs[0] + i;
-			LOW_BYTE(addr, value)
-			    storeb((zword) (zargs[1] + i), value);
-		}
-	}
+    else { /* copy backwards */
+        for (i = size - 1; i >= 0; i--) {
+            addr = zargs[0] + i;
+            LOW_BYTE(addr, value)
+            storeb((zword)(zargs[1] + i), value);
+        }
+    }
 } /* z_copy_table */
-
 
 /*
  * z_loadb, store a value from a table of bytes.
@@ -89,17 +87,16 @@ void z_copy_table(void)
 void z_loadb(void)
 {
 #ifdef TOPS20
-	zword addr = zargs[0] + zargs[1] & 0xffff;
+    zword addr = zargs[0] + zargs[1] & 0xffff;
 #else
-	zword addr = zargs[0] + zargs[1];
+    zword addr = zargs[0] + zargs[1];
 #endif
-	zbyte value;
+    zbyte value;
 
-	LOW_BYTE(addr, value)
-	    store(value);
+    LOW_BYTE(addr, value)
+    store(value);
 
 } /* z_loadb */
-
 
 /*
  * z_loadw, store a value from a table of words.
@@ -111,17 +108,16 @@ void z_loadb(void)
 void z_loadw(void)
 {
 #ifdef TOPS20
-	zword addr = (zargs[0] + 2 * zargs[1]) & 0xffff;
+    zword addr = (zargs[0] + 2 * zargs[1]) & 0xffff;
 #else
-	zword addr = zargs[0] + 2 * zargs[1];
+    zword addr = zargs[0] + 2 * zargs[1];
 #endif
-	zword value;
+    zword value;
 
-	LOW_WORD(addr, value)
-	    store(value);
+    LOW_WORD(addr, value)
+    store(value);
 
 } /* z_loadw */
-
 
 /*
  * z_scan_table, find and store the address of a target within a table.
@@ -137,34 +133,30 @@ void z_loadw(void)
  */
 void z_scan_table(void)
 {
-	zword addr = zargs[1];
-	int i;
+    zword addr = zargs[1];
+    int i;
 
-	/* Supply default arguments */
-	if (zargc < 4)
-		zargs[3] = 0x82;
+    /* Supply default arguments */
+    if (zargc < 4) zargs[3] = 0x82;
 
-	/* Scan byte or word array */
-	for (i = 0; i < zargs[2]; i++) {
-		if (zargs[3] & 0x80) {	/* scan word array */
-			zword wvalue;
-			LOW_WORD(addr, wvalue)
-			    if (wvalue == zargs[0])
-				goto finished;
-		} else {	/* scan byte array */
-			zbyte bvalue;
-			LOW_BYTE(addr, bvalue)
-			    if (bvalue == zargs[0])
-				goto finished;
-		}
-		addr += zargs[3] & 0x7f;
-	}
-	addr = 0;
+    /* Scan byte or word array */
+    for (i = 0; i < zargs[2]; i++) {
+        if (zargs[3] & 0x80) { /* scan word array */
+            zword wvalue;
+            LOW_WORD(addr, wvalue)
+            if (wvalue == zargs[0]) goto finished;
+        } else { /* scan byte array */
+            zbyte bvalue;
+            LOW_BYTE(addr, bvalue)
+            if (bvalue == zargs[0]) goto finished;
+        }
+        addr += zargs[3] & 0x7f;
+    }
+    addr = 0;
 finished:
-	store(addr);
-	branch(addr);
+    store(addr);
+    branch(addr);
 } /* z_scan_table */
-
 
 /*
  * z_storeb, write a byte into a table of bytes.
@@ -176,9 +168,8 @@ finished:
  */
 void z_storeb(void)
 {
-	storeb((zword) (zargs[0] + zargs[1]), zargs[2]);
+    storeb((zword)(zargs[0] + zargs[1]), zargs[2]);
 } /* z_storeb */
-
 
 /*
  * z_storew, write a word into a table of words.
@@ -190,5 +181,5 @@ void z_storeb(void)
  */
 void z_storew(void)
 {
-	storew((zword) (zargs[0] + 2 * zargs[1]), zargs[2]);
+    storew((zword)(zargs[0] + 2 * zargs[1]), zargs[2]);
 } /* z_storew */
