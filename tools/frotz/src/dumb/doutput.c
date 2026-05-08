@@ -361,6 +361,64 @@ static void show_cell_normal(cell_t cel)
         zputchar(cel.c);
 } /* show_cell_normal */
 
+static void show_cell_gm(cell_t cel)
+{
+    static char lastfg = DEFAULT_DUMB_COLOUR, lastbg = DEFAULT_DUMB_COLOUR,
+                lastbold = 0, lastemph = 0, lastfix = 0;
+    char fg = cel.fg, bg = cel.bg, bold = (cel.style & BOLDFACE_STYLE) ? 1 : 0,
+         emph = (cel.style & EMPHASIS_STYLE) ? 1 : 0,
+         fix = (cel.style & FIXED_WIDTH_STYLE) ? 1 : 0,
+         defaultfg = frotz_to_dumb[z_header.default_foreground],
+         defaultbg = frotz_to_dumb[z_header.default_background];
+
+    if (fg == DEFAULT_DUMB_COLOUR) fg = defaultfg;
+    if (bg == DEFAULT_DUMB_COLOUR) bg = defaultbg;
+    if (lastfg == DEFAULT_DUMB_COLOUR) lastfg = defaultfg;
+    if (lastbg == DEFAULT_DUMB_COLOUR) lastbg = defaultbg;
+
+    if (lastbold &&
+        (fix != lastfix || bold != lastbold || bg != lastbg || fg != lastfg)) {
+        printf("[/b]");
+        lastbold = 0;
+    }
+
+    if (bold != lastbold) {
+        printf("[b]");
+        lastbold = 1;
+    }
+
+    if (cel.style & REVERSE_STYLE) {
+        if (cel.c == ' ')
+            printf("%s", rv_blank_str);
+        else {
+            switch (rv_mode) {
+            case RV_CAPS:
+                if (cel.c <= 0x7f) {
+                    zputchar(toupper(cel.c));
+                    break;
+                }
+                /* fall through */
+            case RV_NONE:
+                zputchar(cel.c);
+                break;
+            case RV_UNDERLINE:
+                putchar('_');
+                putchar('\b');
+                zputchar(cel.c);
+                break;
+            case RV_DOUBLESTRIKE:
+                zputchar(cel.c);
+                putchar('\b');
+                zputchar(cel.c);
+                break;
+            }
+        }
+    } else if (cel.style & PICTURE_STYLE)
+        zputchar(show_pictures ? cel.c : ' ');
+    else /* Only NORMAL_STYLE and FIXED_WIDTH_STYLE are left. */
+        zputchar(cel.c);
+} /* show_cell_normal */
+
 static void show_cell(cell_t cel)
 {
 #ifndef DISABLE_FORMATS
@@ -370,6 +428,8 @@ static void show_cell(cell_t cel)
         show_cell_ansi(cel);
     else if (f_setup.format == FORMAT_BBCODE)
         show_cell_bbcode(cel);
+    else if (f_setup.format == FORMAT_GM)
+        show_cell_gm(cel);
     else
 #endif
         show_cell_normal(cel);
@@ -472,11 +532,28 @@ static void dumb_set_cell(int row, int col, cell_t c)
     dumb_row(row)[col] = c;
 } /* dumb_set_cell */
 
+static char status_line[120];
+static int max_x = -1;
+
 /* put a character in the cell at the cursor and advance the cursor.  */
 static void dumb_display_char(zchar c)
 {
-    dumb_set_cell(cursor_row, cursor_col,
-                  make_cell(current_style, current_fg, current_bg, c));
+    if (cursor_row == 0 && f_setup.format == FORMAT_GM) {
+        if (max_x < 0) {
+            memset(status_line, ' ', sizeof(status_line));
+        }
+        status_line[cursor_col] = c;
+        if (c != 0x20 && cursor_col > max_x) {
+            max_x = cursor_col;
+            status_line[cursor_col + 1] = 0;
+        }
+        if (c != 0x20) {
+            printf("#[status ::%s]\n", status_line);
+        }
+    } else {
+        dumb_set_cell(cursor_row, cursor_col,
+                      make_cell(current_style, current_fg, current_bg, c));
+    }
     if (++cursor_col == z_header.screen_cols) {
         if (cursor_row == z_header.screen_rows - 1)
             cursor_col--;

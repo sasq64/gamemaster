@@ -13,7 +13,8 @@ typedef enum
     FORMAT_DISABLED,
     FORMAT_IRC,
     FORMAT_ANSI,
-    FORMAT_BBCODE
+    FORMAT_BBCODE,
+    FORMAT_GM
 } format_t;
 
 typedef struct frotz_setup_struct

@@ -1,17 +1,13 @@
 use anyhow::Result;
-use kittage::medium::ChunkSize;
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD;
 use ratatui::buffer::Cell;
-use std::borrow::Cow;
 use std::io::{Write, stdout};
 use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static NEXT_IMAGE_ID: AtomicU32 = AtomicU32::new(1);
 
-use kittage::ImageDimensions;
-use kittage::{
-    NumberOrId, PixelFormat, Verbosity, action::Action as KittyAction, image::Image, medium::Medium,
-};
 use ratatui::{buffer::Buffer, layout::Rect, style::Color, widgets::Widget};
 
 struct CachedWidget<'a> {
@@ -89,40 +85,34 @@ impl ImageWidget {
                 NonZeroU32::new(id).expect("image id counter exhausted")
             }
         };
-        let kitty_image = Image {
-            num_or_id: NumberOrId::Id(image_id),
-            format: PixelFormat::Rgba32(ImageDimensions { width, height }, None),
-            medium: Medium::Direct {
-                data: Cow::Borrowed(image),
-                chunk_size: Some(ChunkSize::default()),
-            },
-        };
-        let action = KittyAction::Transmit(kitty_image);
-        let mut out = stdout();
-        action.write_transmit_to(&mut out, Verbosity::Silent)?;
+
+        let id = image_id.get();
+        let encoded = STANDARD.encode(image.as_raw());
+        // Each chunk must be at most 4096 base64 characters per the kitty
+        // protocol spec.
+        const CHUNK_LEN: usize = 4096;
+        let total_chunks = encoded.len().div_ceil(CHUNK_LEN).max(1);
+        let mut out = stdout().lock();
+        for (idx, chunk) in encoded.as_bytes().chunks(CHUNK_LEN).enumerate() {
+            let more = u8::from(idx + 1 < total_chunks);
+            if idx == 0 {
+                write!(
+                    out,
+                    "\x1b_Ga=t,i={id},q=2,f=32,s={width},v={height},t=d,m={more};"
+                )?;
+            } else {
+                write!(out, "\x1b_Gm={more};")?;
+            }
+            out.write_all(chunk)?;
+            out.write_all(b"\x1b\\")?;
+        }
         out.flush()?;
         Ok(image_id)
     }
 
     pub fn display_image(image_id: NonZeroU32, columns: u16, rows: u16) {
         let id = image_id.get();
-        // NOTE: Workaround: KittyAction::Display is buggy and ignores Verbosity::Silent
         print!("\x1b_Ga=p,i={id},p={id},c={columns},r={rows},U=1,C=1,q=2\x1b\\");
-        // let action = KittyAction::Display {
-        //     image_id,
-        //     config: DisplayConfig {
-        //         location: DisplayLocation {
-        //             columns,
-        //             rows,
-        //             ..Default::default()
-        //         },
-        //         cursor_movement: CursorMovementPolicy::DontMove,
-        //         create_virtual_placement: true,
-        //         ..Default::default()
-        //     },
-        //     placement_id: image_id,
-        // };
-        // action.write_transmit_to(out, Verbosity::Silent)
     }
 }
 

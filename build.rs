@@ -9,7 +9,6 @@ fn build_cmake_tool(src: &str, bin: &str, bin_dir: &Path, build_root: &Path) {
         .unwrap_or_else(|e| panic!("failed to create build dir for {src}: {e}"));
 
     let dst = cmake::Config::new(format!("tools/{src}"))
-        .profile("Release")
         .out_dir(&out_dir)
         .define("CMAKE_EXPORT_COMPILE_COMMANDS", "ON")
         .build();

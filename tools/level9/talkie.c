@@ -52,21 +52,22 @@ void os_printchar(char c)
     }
 }
 
-
 void dump_bitmap(int no)
 {
     Bitmap* bitmap = DecodeBitmap(bitmap_dir, bitmap_type, no, 0, 0);
     if (bitmap) {
-        printf("#[img %d %d %d %d]\n", no, bitmap->width, bitmap->height, bitmap->npalette);
+        printf("#[img %d %d %d %d]\n", no, bitmap->width, bitmap->height,
+               bitmap->npalette);
         printf("#[pal %d", no);
         for (int i = 0; i < bitmap->npalette; i++) {
-            printf(" 0x%02X%02X%02X", bitmap->palette[i].red, bitmap->palette[i].green, bitmap->palette[i].blue);
+            printf(" 0x%02X%02X%02X", bitmap->palette[i].red,
+                   bitmap->palette[i].green, bitmap->palette[i].blue);
         }
         printf("]\n");
         printf("#[pixels %d", no);
         for (int i = 0; i < bitmap->width * bitmap->height; i++) {
             int pixel_index = bitmap->bitmap[i];
-            printf(" 0x%02X", pixel_index); 
+            printf(" 0x%02X", pixel_index);
         }
         printf("]\n");
     }
@@ -123,11 +124,11 @@ char os_readchar(int millis)
     fprintf(stderr, "READCHAR\n");
     c = getc(stdin); /* will require enter key as well */
     fprintf(stderr, "GOT %02x\n", c);
-    //if (c != '\n') {
-    //    while (getc(stdin) != '\n') {
-    //        /* unbuffer input until enter key */
-    //    }
-    //}
+    // if (c != '\n') {
+    //     while (getc(stdin) != '\n') {
+    //         /* unbuffer input until enter key */
+    //     }
+    // }
 
     return c;
 }
@@ -193,12 +194,11 @@ L9BOOL os_get_game_file(char* NewName, int Size)
     return TRUE;
 }
 
-
 #if defined(_Windows) || defined(__MSDOS__) || defined(_WIN32) ||              \
     defined(__WIN32__)
-#define PATH_SEP '\\'
+#    define PATH_SEP '\\'
 #else
-#define PATH_SEP '/'
+#    define PATH_SEP '/'
 #endif
 
 void os_set_filenumber(char* NewName, int Size, int n)
@@ -220,7 +220,6 @@ void os_set_filenumber(char* NewName, int Size, int n)
             p[i] = old_char;
         }
     }
-
 }
 
 void os_graphics(int mode)
@@ -297,7 +296,6 @@ int main(int argc, char** argv)
     }
     if (argc > 2) {
         bitmap_type = DetectBitmaps(argv[2]);
-        printf("Type %d\n", bitmap_type);
         bitmap_dir = argv[2];
     }
     int rc = 1;

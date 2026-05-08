@@ -7,14 +7,12 @@ use std::io::{Write, stdout};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use ratatui::style::Stylize;
 use ratatui::text::Span;
 use rustix::path::Arg;
-use rustix::termios::tcgetwinsize;
 
 use crossterm::event::EventStream;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
@@ -37,7 +35,6 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::select;
 
 use crate::game::Game;
-use crate::image_drawer::ImageDrawer;
 use crate::image_widget::ImageWidget;
 
 #[derive(Default, Parser, Debug, Clone)]
@@ -45,6 +42,7 @@ use crate::image_widget::ImageWidget;
 pub struct Args {
     game: PathBuf,
     extra_file: Option<PathBuf>,
+    margin: Option<u32>,
 }
 
 // --- Shell ---
@@ -171,27 +169,26 @@ impl Widget for TextWidget<'_> {
 fn draw_ui(frame: &mut Frame, game: &mut Game) {
     let border = if game.image_rows > 0 { 2 } else { 0 };
 
-    // Layout
+    let [_, main, _] = Layout::horizontal([
+        Constraint::Length(game.margin),
+        Constraint::Min(1),
+        Constraint::Length(game.margin),
+    ])
+    .areas(frame.area());
+
     let [status_area, image_row, text_area, prompt_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(game.image_rows + border),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
-    .areas(frame.area());
+    .areas(main);
     let [left_status, right_status] =
         Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
             .areas(status_area);
     let [image_area] = Layout::horizontal([Constraint::Length(game.image_cols)])
         .flex(Flex::Center)
         .areas(image_row);
-
-    let [_, text_area, _] = Layout::horizontal([
-        Constraint::Length(4),
-        Constraint::Min(1),
-        Constraint::Length(4),
-    ])
-    .areas(text_area);
 
     //
 
@@ -238,12 +235,13 @@ fn draw_ui(frame: &mut Frame, game: &mut Game) {
 
 fn send_kitty_image(game: &mut Game) -> Result<()> {
     //let w = game.drawer.get_canvas_size().0;
-    let scale = 4u32;
+    let scale = 3u32;
     //while (w * scale) < 60 * game.cell_w as u32 {
     //    scale += 1;
     //}
 
     let rgba = game.drawer.get_scaled_image(scale)?;
+
     let width = rgba.width();
     let height = rgba.height();
     let columns = width / game.cell_w as u32;
@@ -275,7 +273,7 @@ async fn main() -> Result<()> {
     let tools = [
         Tool {
             pattern: Regex::new(r"\.z(\d|code)$")?,
-            args: &["-m", "-w", "120"],
+            args: &["-q", "-f", "gm", "-m", "-w", "120"],
             program: "bin/dfrotz",
         },
         Tool {
@@ -319,13 +317,6 @@ async fn main() -> Result<()> {
 
     let mut stdout_lines = BufReader::new(stdout_pipe).lines();
 
-    let stdout_filters: Vec<Regex> = [r"normal formatting.", "^Loading ", r"^>\s*$"]
-        .iter()
-        .map(|p| Regex::new(p).expect("invalid filter regex"))
-        .collect();
-
-    let command_re = Regex::new(r"#\[(.*?)\]\n?").expect("Invalid regex");
-
     // Setup terminal
     install_panic_hook();
     enable_raw_mode()?;
@@ -336,43 +327,19 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout());
     let mut terminal = Terminal::new(backend)?;
 
-    let size = tcgetwinsize(stdout())?;
-    let rows = size.ws_row;
-    let cols = size.ws_col;
-    let cell_w = if cols > 0 { size.ws_xpixel / cols } else { 8 };
-    let cell_h = if rows > 0 { size.ws_ypixel / rows } else { 16 };
-
-    let mut game = Game {
-        shell: Shell::new(),
-        drawer: ImageDrawer::new(),
-        prompt_active: false,
-        last_output: Instant::now() + Duration::from_millis(500),
-        command_re,
-        stdout_filters,
-        output: vec![],
-        text_lines: vec![],
-        image_cols: 0,
-        image_rows: 0,
-        image_id: None,
-        image_dirty: false,
-        cell_w,
-        cell_h,
-    };
+    let mut game = Game::new();
+    if let Some(margin) = cmdline.margin {
+        game.margin = margin as u16;
+    }
 
     let mut event_stream = EventStream::new();
     let mut tick = tokio::time::interval(Duration::from_millis(100));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
     let mut should_quit = false;
-
     let mut frame_dirty = true;
 
     loop {
-        if game.image_dirty {
-            send_kitty_image(&mut game)?;
-            game.image_dirty = false;
-            frame_dirty = true;
-        }
         if frame_dirty {
             frame_dirty = false;
             terminal.draw(|frame| draw_ui(frame, &mut game))?;
@@ -392,6 +359,11 @@ async fn main() -> Result<()> {
         select! {
             _ = tick.tick() => {
                 game.tick();
+                if game.image_dirty {
+                    send_kitty_image(&mut game)?;
+                    game.image_dirty = false;
+                    frame_dirty = true;
+                }
             },
             res = stdout_lines.next_line() => match res? {
                 Some(line) => {
