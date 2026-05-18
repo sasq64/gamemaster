@@ -1,12 +1,12 @@
 
-- [ ] Configurable margin
+- [x] Configurable margin
 - [ ] Configurable draw speed
 - [ ] Auto margin relative to aspect ratio
-- [ ] Strip "What now?" in Level9
+- [x] Strip "What now?" in Level9
 - [ ] Prompt history
-- [ ] Align prompt
+- [x] Align prompt
 - [ ] Unwrap frotz output
-[ ] Styles for frotz output
-
+- [x] Styles for frotz output
+- [ ] No empty graphics window
 
 
